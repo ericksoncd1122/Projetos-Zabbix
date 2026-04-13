@@ -33,49 +33,6 @@ Testado com:
 
 ---
 
-## Estrutura sugerida do repositório
-
-```text
-intelbras-olt-8820i-zabbix/
-├── README.md
-├── LICENSE
-├── templates/
-│   └── template_intelbras_olt_8820i_snmp_zabbix_7_validado_v4.yaml
-├── docs/
-│   ├── oids-validados.md
-│   ├── importacao-zabbix.md
-│   └── troubleshooting.md
-├── imagens/
-│   ├── descoberta-onus.png
-│   ├── descoberta-sfps.png
-│   ├── itens-template.png
-│   └── triggers-template.png
-└── extras/
-    └── exemplos-snmpwalk.txt
-```
-
-### O que colocar em cada pasta
-
-**`templates/`**  
-Arquivo YAML final para importação no Zabbix.
-
-**`docs/oids-validados.md`**  
-Lista dos OIDs testados e aprovados na OLT.
-
-**`docs/importacao-zabbix.md`**  
-Passo a passo rápido de importação, criação do host e configuração SNMP.
-
-**`docs/troubleshooting.md`**  
-Erros comuns, itens unsupported, timeout de SNMP, problemas de discovery, etc.
-
-**`imagens/`**  
-Prints do template, itens, descobertas e gráficos.
-
-**`extras/`**  
-Saídas de `snmpwalk`, exemplos de uso e material auxiliar.
-
----
-
 ## Recursos do template
 
 ### 1. Monitoramento geral da OLT
@@ -183,16 +140,6 @@ Antes de usar o template, garanta que:
 - a community SNMP esteja configurada corretamente;
 - a interface SNMP do host no Zabbix esteja cadastrada com IP correto.
 
-Exemplo de configuração utilizada nos testes:
-
-```text
-IP da OLT: 10.20.20.6
-Versão SNMP: v2c
-Community: WNET-TELECOM
-```
-
----
-
 ## Como importar no Zabbix
 
 1. Acesse **Data collection > Templates**.
@@ -271,38 +218,3 @@ Se encontrar algum comportamento diferente em outra OLT, abra uma issue com:
 - versão de firmware;
 - saída dos OIDs testados;
 - print do erro no Zabbix, se houver.
-
----
-
-## Boas práticas para publicar no GitHub
-
-Antes de subir o projeto, recomenda-se:
-
-1. Renomear os arquivos com nomes curtos e consistentes.
-2. Remover IPs internos, communities e dados sensíveis dos exemplos.
-3. Adicionar prints reais do funcionamento.
-4. Incluir licença.
-5. Criar uma seção de versão/changelog.
-
-Exemplo:
-
-```text
-v1.0.0 - Primeira versão pública
-- Template validado em OLT Intelbras 8820i
-- Discovery de ONUs, SFPs e interfaces
-- Alerta de queda total por porta PON
-```
-
----
-
-## Licença
-
-Escolha uma licença para o projeto antes de publicar. Para projetos técnicos de compartilhamento aberto, uma opção comum é a **MIT License**.
-
----
-
-## Autor
-
-Projeto desenvolvido para monitoramento de OLT Intelbras 8820i no Zabbix, com foco operacional em ambientes ISP.
-
-Se você utilizar este template e ele te ajudar no dia a dia, considere registrar melhorias e compartilhar sua experiência.
