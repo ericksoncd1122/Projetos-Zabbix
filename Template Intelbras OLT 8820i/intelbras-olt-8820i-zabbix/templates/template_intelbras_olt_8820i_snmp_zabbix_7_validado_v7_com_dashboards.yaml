@@ -1,0 +1,1141 @@
+zabbix_export:
+  version: '7.0'
+  template_groups:
+  - uuid: e412f85ee6834ce5874a43a2de0c2bf1
+    name: Templates/Network devices
+  templates:
+  - uuid: 97d0416def2d4e0d86a838f6c8ded46b
+    template: Intelbras OLT 8820i by SNMP
+    name: Intelbras OLT 8820i by SNMP
+    description: 'Template para monitoramento da Intelbras OLT 8820i via SNMP.
+
+
+      Montado a partir dos OIDs validados na sua própria OLT 10.20.20.6:
+
+      - sistema (CPU, memória, uptime);
+
+      - descoberta de ONUs pela árvore privada Intelbras;
+
+      - descoberta de SFPs/GPON pela árvore privada Intelbras;
+
+      - descoberta de interfaces pela IF-MIB padrão (status e tráfego).
+
+
+      Compatível com Zabbix 7.0.
+
+      O template usa itens mestre walk[] + itens dependentes para reduzir consultas SNMP.
+
+      Leituras ópticas que retornam "--" são descartadas no pré-processamento para evitar itens unsupported.
+
+
+      A versão atual mantém os itens ópticos/OMCI/status da ONU sem alertas individuais e adiciona alerta agregado por porta PON quando todas as ONUs registradas daquela porta ficam inativas.
+
+      '
+    groups:
+    - name: Templates/Network devices
+    macros:
+    - macro: '{$CPU.UTIL.CRIT}'
+      value: '85'
+      description: Alerta de CPU alta (%)
+    - macro: '{$MEM.FREE.MIN.PCT}'
+      value: '15'
+      description: Alerta de memória livre baixa (%)
+    - macro: '{$ONU.OLT.RX.LOW}'
+      value: '-28'
+      description: Limite baixo do RX da OLT visto pela ONU (dBm)
+    - macro: '{$ONU.RX.LOW}'
+      value: '-28'
+      description: Limite baixo do RX da ONU (dBm)
+    - macro: '{$SFP.TEMP.HIGH}'
+      value: '70'
+      description: Temperatura alta do SFP (°C)
+    - macro: '{$SFP.IFNAME.MATCHES}'
+      value: ^gpon[0-9]+$
+      description: Interfaces ópticas da árvore privada a descobrir por padrão
+    - macro: '{$SFP.IFNAME.NOT_MATCHES}'
+      value: ^$
+      description: Interfaces ópticas a ignorar na descoberta
+    - macro: '{$IFNAME.MATCHES}'
+      value: ^(gpon|xeth)[0-9]+$
+      description: Interfaces IF-MIB a descobrir por padrão
+    - macro: '{$IFNAME.NOT_MATCHES}'
+      value: ^$
+      description: Interfaces IF-MIB a ignorar na descoberta
+    items:
+    - uuid: 84118f9104c8440c87f5a1ab7e694ba7
+      name: 'Intelbras 8820i: ICMP ping'
+      type: SIMPLE
+      key: icmpping
+      history: 7d
+      valuemap:
+        name: Service state
+      tags:
+      - tag: component
+        value: network
+      triggers:
+      - uuid: 6b62fcd3018c4996b9da903d11e1ecb0
+        expression: max(/Intelbras OLT 8820i by SNMP/icmpping,#3)=0
+        name: 'Intelbras 8820i: Host indisponível por ICMP'
+        priority: HIGH
+        description: As últimas três tentativas de ICMP falharam.
+        tags:
+        - tag: scope
+          value: availability
+    - uuid: f9f3c427ee6d459daba7d562a843ab58
+      name: 'Intelbras 8820i: System description'
+      type: SNMP_AGENT
+      snmp_oid: 1.3.6.1.2.1.1.1.0
+      key: intelbras.sys.descr
+      delay: 1h
+      history: 7d
+      trends: '0'
+      value_type: CHAR
+      tags:
+      - tag: component
+        value: system
+    - uuid: 61df6f7816e8463db5634b67fc240da9
+      name: 'Intelbras 8820i: System name'
+      type: SNMP_AGENT
+      snmp_oid: 1.3.6.1.2.1.1.5.0
+      key: intelbras.sys.name
+      delay: 15m
+      history: 7d
+      trends: '0'
+      value_type: CHAR
+      tags:
+      - tag: component
+        value: system
+    - uuid: ad89b413d47d401a8288b501965920b1
+      name: 'Intelbras 8820i: System location'
+      type: SNMP_AGENT
+      snmp_oid: 1.3.6.1.2.1.1.6.0
+      key: intelbras.sys.location
+      delay: 15m
+      history: 7d
+      trends: '0'
+      value_type: CHAR
+      tags:
+      - tag: component
+        value: system
+    - uuid: 41bbe931d79443d0a140f96b3554d3f0
+      name: 'Intelbras 8820i: Uptime'
+      type: SNMP_AGENT
+      snmp_oid: 1.3.6.1.2.1.1.3.0
+      key: intelbras.sys.uptime
+      delay: 30s
+      history: 7d
+      trends: '0'
+      units: uptime
+      preprocessing:
+      - type: MULTIPLIER
+        parameters:
+        - '0.01'
+      tags:
+      - tag: component
+        value: system
+    - uuid: 054ffce0fe9c4dae9e0b7e0d9cded1c1
+      name: 'Intelbras 8820i: CPU usage'
+      type: SNMP_AGENT
+      snmp_oid: 1.3.6.1.4.1.2021.11.9.0
+      key: intelbras.cpu.util
+      delay: 3m
+      history: 7d
+      value_type: FLOAT
+      units: '%'
+      tags:
+      - tag: component
+        value: cpu
+      triggers:
+      - uuid: 4aaf7db58fb94a288accd77386930fa3
+        expression: min(/Intelbras OLT 8820i by SNMP/intelbras.cpu.util,5m)>{$CPU.UTIL.CRIT}
+        name: 'Intelbras 8820i: CPU alta'
+        event_name: 'Intelbras 8820i: CPU acima de {$CPU.UTIL.CRIT}% por 5m'
+        opdata: 'Valor atual: {ITEM.LASTVALUE1}'
+        priority: WARNING
+        tags:
+        - tag: scope
+          value: performance
+    - uuid: 3b6e819b86b141e69d6c9839ea886dd2
+      name: 'Intelbras 8820i: Memory total'
+      type: SNMP_AGENT
+      snmp_oid: 1.3.6.1.4.1.2021.4.5.0
+      key: intelbras.mem.total
+      delay: 5m
+      history: 7d
+      units: B
+      preprocessing:
+      - type: MULTIPLIER
+        parameters:
+        - '1024'
+      tags:
+      - tag: component
+        value: memory
+    - uuid: bbbaa0c6957c4a649f419a0aaecaa63a
+      name: 'Intelbras 8820i: Memory free'
+      type: SNMP_AGENT
+      snmp_oid: 1.3.6.1.4.1.2021.4.6.0
+      key: intelbras.mem.free
+      delay: 1m
+      history: 7d
+      units: B
+      preprocessing:
+      - type: MULTIPLIER
+        parameters:
+        - '1024'
+      tags:
+      - tag: component
+        value: memory
+    - uuid: 2a8588efbbec40d6a97f3493082b4cf1
+      name: 'Intelbras 8820i: Memory free (%)'
+      type: CALCULATED
+      key: intelbras.mem.free.pct
+      history: 7d
+      value_type: FLOAT
+      units: '%'
+      params: last(//intelbras.mem.free)/last(//intelbras.mem.total)*100
+      tags:
+      - tag: component
+        value: memory
+      triggers:
+      - uuid: e86983eb1fa04f94a2fe9a0bdfe39433
+        expression: max(/Intelbras OLT 8820i by SNMP/intelbras.mem.free.pct,5m)<{$MEM.FREE.MIN.PCT}
+        name: 'Intelbras 8820i: Memória livre baixa'
+        event_name: 'Intelbras 8820i: Memória livre abaixo de {$MEM.FREE.MIN.PCT}% por 5m'
+        opdata: 'Memória livre: {ITEM.LASTVALUE1}%'
+        priority: WARNING
+        tags:
+        - tag: scope
+          value: capacity
+    - uuid: a703c465c3764e11baa8f0f99e4d31ec
+      name: 'Intelbras 8820i: SNMP walk ONUs'
+      type: SNMP_AGENT
+      snmp_oid: walk[1.3.6.1.4.1.26138.1.2.1.1.1.2,1.3.6.1.4.1.26138.1.2.1.1.1.3,1.3.6.1.4.1.26138.1.2.1.1.1.4,1.3.6.1.4.1.26138.1.2.1.1.1.5,1.3.6.1.4.1.26138.1.2.1.1.1.6,1.3.6.1.4.1.26138.1.2.1.1.1.7,1.3.6.1.4.1.26138.1.2.1.1.1.8,1.3.6.1.4.1.26138.1.2.1.1.1.9]
+      key: intelbras.onu.walk
+      delay: 1m
+      history: '0'
+      trends: '0'
+      value_type: TEXT
+      description: Tabela de ONUs da Intelbras 8820i.
+      tags:
+      - tag: component
+        value: raw
+      timeout: 10s
+    - uuid: e9528b0dfefb428488b54994fd5b9a88
+      name: 'Intelbras 8820i: SNMP walk SFPs'
+      type: SNMP_AGENT
+      snmp_oid: walk[1.3.6.1.4.1.26138.1.1.1.1.1.2,1.3.6.1.4.1.26138.1.1.1.1.1.3,1.3.6.1.4.1.26138.1.1.1.1.1.4,1.3.6.1.4.1.26138.1.1.1.1.1.5,1.3.6.1.4.1.26138.1.1.1.1.1.6,1.3.6.1.4.1.26138.1.1.1.1.1.7,1.3.6.1.4.1.26138.1.1.1.1.1.8,1.3.6.1.4.1.26138.1.1.1.1.1.9,1.3.6.1.4.1.26138.1.1.1.1.1.10]
+      key: intelbras.sfp.walk
+      delay: 5m
+      history: '0'
+      trends: '0'
+      value_type: TEXT
+      description: Tabela de SFPs da Intelbras 8820i.
+      tags:
+      - tag: component
+        value: raw
+      timeout: 10s
+    - uuid: 6c624b6a13344166a1bc5849af865268
+      name: 'Intelbras 8820i: SNMP walk interfaces IF-MIB'
+      type: SNMP_AGENT
+      snmp_oid: walk[1.3.6.1.2.1.31.1.1.1.1,1.3.6.1.2.1.2.2.1.8,1.3.6.1.2.1.31.1.1.1.6,1.3.6.1.2.1.31.1.1.1.10,1.3.6.1.2.1.31.1.1.1.15]
+      key: intelbras.if.walk
+      delay: 5m
+      timeout: 10s
+      history: '0'
+      trends: '0'
+      value_type: TEXT
+      description: Tabela IF-MIB para nomes, status, tráfego e velocidade das interfaces.
+      tags:
+      - tag: component
+        value: raw
+    discovery_rules:
+    - uuid: cb337257072646779e3b0c2811af5fa4
+      name: Discovery ONUs
+      type: DEPENDENT
+      key: intelbras.onu.discovery
+      delay: '0'
+      lifetime_type: DELETE_AFTER
+      lifetime: 7d
+      description: Descobre ONUs registradas a partir da tabela privada Intelbras.
+      filter:
+        evaltype: AND
+        conditions:
+        - macro: '{#ONU.REG}'
+          value: ^1$
+          operator: MATCHES_REGEX
+      preprocessing:
+      - type: SNMP_WALK_TO_JSON
+        parameters:
+        - '{#ONU.PORT}'
+        - 1.3.6.1.4.1.26138.1.2.1.1.1.2
+        - '0'
+        - '{#ONU.ID}'
+        - 1.3.6.1.4.1.26138.1.2.1.1.1.3
+        - '0'
+        - '{#ONU.REG}'
+        - 1.3.6.1.4.1.26138.1.2.1.1.1.4
+        - '0'
+        - '{#ONU.ACTIVE}'
+        - 1.3.6.1.4.1.26138.1.2.1.1.1.5
+        - '0'
+        - '{#ONU.SERIAL}'
+        - 1.3.6.1.4.1.26138.1.2.1.1.1.6
+        - '0'
+        - '{#ONU.OMCI}'
+        - 1.3.6.1.4.1.26138.1.2.1.1.1.7
+        - '0'
+      - type: DISCARD_UNCHANGED_HEARTBEAT
+        parameters:
+        - 1h
+      master_item:
+        key: intelbras.onu.walk
+      item_prototypes:
+      - uuid: bacdf6ca616c4335b1ea62043942caaf
+        name: 'ONU PON {#ONU.PORT}/{#ONU.ID}: Serial'
+        type: DEPENDENT
+        key: intelbras.onu.serial[{#SNMPINDEX}]
+        master_item:
+          key: intelbras.onu.walk
+        preprocessing:
+        - type: SNMP_WALK_VALUE
+          parameters:
+          - 1.3.6.1.4.1.26138.1.2.1.1.1.6.{#SNMPINDEX}
+          - '0'
+        tags:
+        - tag: component
+          value: onu
+        - tag: pon
+          value: '{#ONU.PORT}'
+        - tag: onu
+          value: '{#ONU.ID}'
+        value_type: CHAR
+      - uuid: 02b832ab38984c9abfd78d86c915baa9
+        name: 'ONU PON {#ONU.PORT}/{#ONU.ID}: Porta PON'
+        type: DEPENDENT
+        key: intelbras.onu.port[{#SNMPINDEX}]
+        master_item:
+          key: intelbras.onu.walk
+        preprocessing:
+        - type: SNMP_WALK_VALUE
+          parameters:
+          - 1.3.6.1.4.1.26138.1.2.1.1.1.2.{#SNMPINDEX}
+          - '0'
+        tags:
+        - tag: component
+          value: onu
+      - uuid: 7ccab5a7fb1049b5987b26eef4047e39
+        name: 'ONU PON {#ONU.PORT}/{#ONU.ID}: ID ONU'
+        type: DEPENDENT
+        key: intelbras.onu.id[{#SNMPINDEX}]
+        master_item:
+          key: intelbras.onu.walk
+        preprocessing:
+        - type: SNMP_WALK_VALUE
+          parameters:
+          - 1.3.6.1.4.1.26138.1.2.1.1.1.3.{#SNMPINDEX}
+          - '0'
+        tags:
+        - tag: component
+          value: onu
+      - uuid: 820d66ad8add49d2a29b40da6937d2cb
+        name: 'ONU PON {#ONU.PORT}/{#ONU.ID}: Registrada'
+        type: DEPENDENT
+        key: intelbras.onu.registered[{#SNMPINDEX}]
+        master_item:
+          key: intelbras.onu.walk
+        preprocessing:
+        - type: SNMP_WALK_VALUE
+          parameters:
+          - 1.3.6.1.4.1.26138.1.2.1.1.1.4.{#SNMPINDEX}
+          - '0'
+        tags:
+        - tag: component
+          value: onu
+        valuemap:
+          name: Intelbras 8820i ONU registered
+      - uuid: d6ff3b87c1684cfca09b7a5ad46795f3
+        name: 'ONU PON {#ONU.PORT}/{#ONU.ID}: Status'
+        type: DEPENDENT
+        key: intelbras.onu.active[{#SNMPINDEX}]
+        master_item:
+          key: intelbras.onu.walk
+        preprocessing:
+        - type: SNMP_WALK_VALUE
+          parameters:
+          - 1.3.6.1.4.1.26138.1.2.1.1.1.5.{#SNMPINDEX}
+          - '0'
+        tags:
+        - tag: component
+          value: onu
+        - tag: pon
+          value: '{#ONU.PORT}'
+        - tag: onu
+          value: '{#ONU.ID}'
+        valuemap:
+          name: Intelbras 8820i ONU active
+      - uuid: c915b14ca2fa4716a3d3a980354a4b7b
+        name: 'ONU PON {#ONU.PORT}/{#ONU.ID}: OMCI'
+        type: DEPENDENT
+        key: intelbras.onu.omci[{#SNMPINDEX}]
+        master_item:
+          key: intelbras.onu.walk
+        preprocessing:
+        - type: SNMP_WALK_VALUE
+          parameters:
+          - 1.3.6.1.4.1.26138.1.2.1.1.1.7.{#SNMPINDEX}
+          - '0'
+        tags:
+        - tag: component
+          value: onu
+        valuemap:
+          name: Intelbras 8820i ONU OMCI
+      - uuid: 9027f69f541b4277a170ceeb739bbcd0
+        name: 'ONU PON {#ONU.PORT}/{#ONU.ID}: RX OLT'
+        type: DEPENDENT
+        key: intelbras.onu.olt.rx[{#SNMPINDEX}]
+        master_item:
+          key: intelbras.onu.walk
+        preprocessing:
+        - type: SNMP_WALK_VALUE
+          parameters:
+          - 1.3.6.1.4.1.26138.1.2.1.1.1.8.{#SNMPINDEX}
+          - '0'
+        - &id001
+          type: REGEX
+          parameters:
+          - (-?[0-9]+(?:\.[0-9]+)?)
+          - \1
+          error_handler: DISCARD_VALUE
+        tags:
+        - tag: component
+          value: optical
+        - tag: pon
+          value: '{#ONU.PORT}'
+        - tag: onu
+          value: '{#ONU.ID}'
+        value_type: FLOAT
+        units: dBm
+      - uuid: fa24c5f29587465ab7c1795992eb84dc
+        name: 'ONU PON {#ONU.PORT}/{#ONU.ID}: RX ONU'
+        type: DEPENDENT
+        key: intelbras.onu.rx[{#SNMPINDEX}]
+        master_item:
+          key: intelbras.onu.walk
+        preprocessing:
+        - type: SNMP_WALK_VALUE
+          parameters:
+          - 1.3.6.1.4.1.26138.1.2.1.1.1.9.{#SNMPINDEX}
+          - '0'
+        - *id001
+        tags:
+        - tag: component
+          value: optical
+        - tag: pon
+          value: '{#ONU.PORT}'
+        - tag: onu
+          value: '{#ONU.ID}'
+        value_type: FLOAT
+        units: dBm
+      graph_prototypes:
+      - uuid: 7dc09abca243472397c39c132dd9bc81
+        name: 'ONU PON {#ONU.PORT}/{#ONU.ID}: Potência óptica'
+        graph_items:
+        - drawtype: BOLD_LINE
+          color: 199C0D
+          item:
+            host: Intelbras OLT 8820i by SNMP
+            key: intelbras.onu.olt.rx[{#SNMPINDEX}]
+        - sortorder: '1'
+          drawtype: GRADIENT_LINE
+          color: F63100
+          item:
+            host: Intelbras OLT 8820i by SNMP
+            key: intelbras.onu.rx[{#SNMPINDEX}]
+    - uuid: e31ac109b38c4ed4a72788f1792b3252
+      name: Discovery PONs
+      type: DEPENDENT
+      key: intelbras.pon.discovery
+      delay: '0'
+      lifetime_type: DELETE_AFTER
+      lifetime: 7d
+      description: Descobre as portas GPON pela IF-MIB e cria contadores agregados por porta PON.
+      filter:
+        evaltype: AND
+        conditions:
+        - macro: '{#PON.NAME}'
+          value: ^gpon[0-9]+$
+          operator: MATCHES_REGEX
+      preprocessing:
+      - type: SNMP_WALK_TO_JSON
+        parameters:
+        - '{#PON.NAME}'
+        - 1.3.6.1.2.1.31.1.1.1.1
+        - '0'
+      - type: DISCARD_UNCHANGED_HEARTBEAT
+        parameters:
+        - 1h
+      master_item:
+        key: intelbras.if.walk
+      item_prototypes:
+      - uuid: e5e11f5fe4b64dffb009291efa6d252a
+        name: 'PON {#PON.NAME}: ONUs registradas'
+        type: DEPENDENT
+        key: intelbras.pon.onu.registered.count[{#PON.NAME}]
+        master_item:
+          key: intelbras.onu.walk
+        preprocessing:
+        - type: JAVASCRIPT
+          parameters:
+          - "var portName = '{#PON.NAME}';\nvar m = portName.match(/gpon(\\d+)/i);\nif (!m) {\n  throw 'Porta PON inválida: ' + portName;\n}\nvar wanted = parseInt(m[1], 10);\nvar ports = {};\nvar regs = {};\n\nvalue.split(/\\r?\\n/).forEach(function(line) {\n  var mm = line.match(/\\.?1\\.3\\.6\\.1\\.4\\.1\\.26138\\.1\\.2\\.1\\.1\\.1\\.(\\d+)\\.(\\d+)\\s*=\\s*(.*)$/);\n  if (!mm) return;\n  var col = parseInt(mm[1], 10);\n  var idx = mm[2];\n  var raw = mm[3].trim();\n  raw = raw.replace(/^[A-Za-z0-9-]+:\\s*/, '').replace(/^\"/, '').replace(/\"$/, '').trim();\n\n  if (col === 2) {\n    ports[idx] = parseInt(raw, 10);\n  } else if (col === 4) {\n    regs[idx] = parseInt(raw, 10);\n  }\n});\n\nvar total = 0;\nObject.keys(ports).forEach(function(idx) {\n  if (ports[idx] === wanted && regs[idx] === 1) {\n    total++;\n  }\n});\n\nreturn total;"
+        tags:
+        - tag: component
+          value: onu
+        - tag: component
+          value: pon
+        - tag: pon
+          value: '{#PON.NAME}'
+      - uuid: e22f844218ce4706bdde997ec9b8458a
+        name: 'PON {#PON.NAME}: ONUs ativas'
+        type: DEPENDENT
+        key: intelbras.pon.onu.active.count[{#PON.NAME}]
+        master_item:
+          key: intelbras.onu.walk
+        preprocessing:
+        - type: JAVASCRIPT
+          parameters:
+          - "var portName = '{#PON.NAME}';\nvar m = portName.match(/gpon(\\d+)/i);\nif (!m) {\n  throw 'Porta PON inválida: ' + portName;\n}\nvar wanted = parseInt(m[1], 10);\nvar ports = {};\nvar regs = {};\nvar acts = {};\n\nvalue.split(/\\r?\\n/).forEach(function(line) {\n  var mm = line.match(/\\.?1\\.3\\.6\\.1\\.4\\.1\\.26138\\.1\\.2\\.1\\.1\\.1\\.(\\d+)\\.(\\d+)\\s*=\\s*(.*)$/);\n  if (!mm) return;\n  var col = parseInt(mm[1], 10);\n  var idx = mm[2];\n  var raw = mm[3].trim();\n  raw = raw.replace(/^[A-Za-z0-9-]+:\\s*/, '').replace(/^\"/, '').replace(/\"$/, '').trim();\n\n  if (col === 2) {\n    ports[idx] = parseInt(raw, 10);\n  } else if (col === 4) {\n    regs[idx] = parseInt(raw, 10);\n  } else if (col === 5) {\n    acts[idx] = parseInt(raw, 10);\n  }\n});\n\nvar total = 0;\nObject.keys(ports).forEach(function(idx) {\n  if (ports[idx] === wanted && regs[idx] === 1 && acts[idx] === 1) {\n    total++;\n  }\n});\n\nreturn total;"
+        tags:
+        - tag: component
+          value: onu
+        - tag: component
+          value: pon
+        - tag: pon
+          value: '{#PON.NAME}'
+        trigger_prototypes:
+        - uuid: 47a2c02333234e78883116b101702d91
+          expression: last(/Intelbras OLT 8820i by SNMP/intelbras.pon.onu.active.count[{#PON.NAME}])=0 and last(/Intelbras OLT 8820i by SNMP/intelbras.pon.onu.registered.count[{#PON.NAME}])>0
+          name: 'PON {#PON.NAME}: Todas as ONUs caíram'
+          event_name: 'PON {#PON.NAME}: todas as ONUs registradas estão inativas'
+          opdata: 'Registradas: {ITEM.LASTVALUE2} | Ativas: {ITEM.LASTVALUE1}'
+          priority: HIGH
+          description: Dispara quando a porta PON ainda tem ONUs registradas, mas nenhuma ONU permanece ativa na coleta atual. Com o walk de ONUs em 3 minutos, o evento tende a abrir em cerca de 3 minutos.
+          tags:
+          - tag: scope
+            value: availability
+          - tag: component
+            value: pon
+      graph_prototypes:
+      - uuid: 67b2222b33cf4eaf8710880481404e7d
+        name: 'PON {#PON.NAME}: ONUs registradas e ativas'
+        graph_items:
+        - drawtype: BOLD_LINE
+          color: 199C0D
+          item:
+            host: Intelbras OLT 8820i by SNMP
+            key: intelbras.pon.onu.registered.count[{#PON.NAME}]
+        - sortorder: '1'
+          drawtype: GRADIENT_LINE
+          color: F63100
+          item:
+            host: Intelbras OLT 8820i by SNMP
+            key: intelbras.pon.onu.active.count[{#PON.NAME}]
+    - uuid: 58263c1988da447cb5fa78bbb0c7d39b
+      name: Discovery SFPs
+      type: DEPENDENT
+      key: intelbras.sfp.discovery
+      delay: '0'
+      lifetime_type: DELETE_AFTER
+      lifetime: 7d
+      description: Descobre interfaces ópticas da tabela privada Intelbras.
+      preprocessing:
+      - type: SNMP_WALK_TO_JSON
+        parameters:
+        - '{#SFP.NAME}'
+        - 1.3.6.1.4.1.26138.1.1.1.1.1.2
+        - '0'
+        - '{#SFP.PRESENT}'
+        - 1.3.6.1.4.1.26138.1.1.1.1.1.3
+        - '0'
+        - '{#SFP.VENDOR}'
+        - 1.3.6.1.4.1.26138.1.1.1.1.1.4
+        - '0'
+        - '{#SFP.PN}'
+        - 1.3.6.1.4.1.26138.1.1.1.1.1.5
+        - '0'
+      - type: DISCARD_UNCHANGED_HEARTBEAT
+        parameters:
+        - 1h
+      master_item:
+        key: intelbras.sfp.walk
+      item_prototypes:
+      - uuid: 2829ce10bf174059bcf0e38391326798
+        name: 'SFP {#SFP.NAME}: Presença'
+        type: DEPENDENT
+        key: intelbras.sfp.present[{#SNMPINDEX}]
+        master_item:
+          key: intelbras.sfp.walk
+        preprocessing:
+        - type: SNMP_WALK_VALUE
+          parameters:
+          - 1.3.6.1.4.1.26138.1.1.1.1.1.3.{#SNMPINDEX}
+          - '0'
+        tags:
+        - tag: component
+          value: sfp
+        - tag: interface
+          value: '{#SFP.NAME}'
+        valuemap:
+          name: Intelbras 8820i SFP present
+        trigger_prototypes:
+        - uuid: 534a54987f3b4cbf928d943fde0ef521
+          expression: last(/Intelbras OLT 8820i by SNMP/intelbras.sfp.present[{#SNMPINDEX}])=2
+          name: 'SFP {#SFP.NAME}: Módulo inativo/ausente'
+          opdata: 'Presença: {ITEM.LASTVALUE1}'
+          priority: AVERAGE
+          tags:
+          - tag: scope
+            value: availability
+      - uuid: 8e832c12645648669d328ac0f112d858
+        name: 'SFP {#SFP.NAME}: Vendor'
+        type: DEPENDENT
+        key: intelbras.sfp.vendor[{#SNMPINDEX}]
+        master_item:
+          key: intelbras.sfp.walk
+        preprocessing:
+        - type: SNMP_WALK_VALUE
+          parameters:
+          - 1.3.6.1.4.1.26138.1.1.1.1.1.4.{#SNMPINDEX}
+          - '0'
+        tags:
+        - tag: component
+          value: sfp
+        value_type: CHAR
+      - uuid: 1259ad64735443a3bf84df0cc736eaf2
+        name: 'SFP {#SFP.NAME}: Part number'
+        type: DEPENDENT
+        key: intelbras.sfp.partnumber[{#SNMPINDEX}]
+        master_item:
+          key: intelbras.sfp.walk
+        preprocessing:
+        - type: SNMP_WALK_VALUE
+          parameters:
+          - 1.3.6.1.4.1.26138.1.1.1.1.1.5.{#SNMPINDEX}
+          - '0'
+        tags:
+        - tag: component
+          value: sfp
+        value_type: CHAR
+      - uuid: 0ec9214a05114939ba3310b5f2f100b8
+        name: 'SFP {#SFP.NAME}: Temperatura'
+        type: DEPENDENT
+        key: intelbras.sfp.temp[{#SNMPINDEX}]
+        master_item:
+          key: intelbras.sfp.walk
+        preprocessing:
+        - type: SNMP_WALK_VALUE
+          parameters:
+          - 1.3.6.1.4.1.26138.1.1.1.1.1.6.{#SNMPINDEX}
+          - '0'
+        - &id002
+          type: REGEX
+          parameters:
+          - (-?[0-9]+(?:\.[0-9]+)?)
+          - \1
+          error_handler: DISCARD_VALUE
+        tags:
+        - tag: component
+          value: temperature
+        - tag: component
+          value: sfp
+        value_type: FLOAT
+        units: °C
+        trigger_prototypes:
+        - uuid: d3bae70d94a143a294ea28e1f4e5346f
+          expression: last(/Intelbras OLT 8820i by SNMP/intelbras.sfp.temp[{#SNMPINDEX}])>{$SFP.TEMP.HIGH}
+          name: 'SFP {#SFP.NAME}: Temperatura alta'
+          event_name: 'SFP {#SFP.NAME}: Temperatura acima de {$SFP.TEMP.HIGH} °C'
+          opdata: 'Temperatura: {ITEM.LASTVALUE1} °C'
+          priority: WARNING
+          tags:
+          - tag: scope
+            value: temperature
+      - uuid: 0412147f2947401eb204b46b7da45062
+        name: 'SFP {#SFP.NAME}: Tensão'
+        type: DEPENDENT
+        key: intelbras.sfp.voltage[{#SNMPINDEX}]
+        master_item:
+          key: intelbras.sfp.walk
+        preprocessing:
+        - type: SNMP_WALK_VALUE
+          parameters:
+          - 1.3.6.1.4.1.26138.1.1.1.1.1.7.{#SNMPINDEX}
+          - '0'
+        - *id002
+        tags:
+        - tag: component
+          value: voltage
+        - tag: component
+          value: sfp
+        value_type: FLOAT
+        units: V
+      - uuid: 26a27ae945b548beb20cbe4cae13d689
+        name: 'SFP {#SFP.NAME}: Tx Bias'
+        type: DEPENDENT
+        key: intelbras.sfp.txbias[{#SNMPINDEX}]
+        master_item:
+          key: intelbras.sfp.walk
+        preprocessing:
+        - type: SNMP_WALK_VALUE
+          parameters:
+          - 1.3.6.1.4.1.26138.1.1.1.1.1.8.{#SNMPINDEX}
+          - '0'
+        - *id002
+        tags:
+        - tag: component
+          value: sfp
+        value_type: FLOAT
+        units: mA
+      - uuid: 017ad8dac4f641258994465000561401
+        name: 'SFP {#SFP.NAME}: TX power'
+        type: DEPENDENT
+        key: intelbras.sfp.txpower[{#SNMPINDEX}]
+        master_item:
+          key: intelbras.sfp.walk
+        preprocessing:
+        - type: SNMP_WALK_VALUE
+          parameters:
+          - 1.3.6.1.4.1.26138.1.1.1.1.1.9.{#SNMPINDEX}
+          - '0'
+        - *id002
+        tags:
+        - tag: component
+          value: optical
+        - tag: component
+          value: sfp
+        value_type: FLOAT
+        units: dBm
+      - uuid: 4908d139ffa740f2a0452f4d5a47b9af
+        name: 'SFP {#SFP.NAME}: RX power'
+        type: DEPENDENT
+        key: intelbras.sfp.rxpower[{#SNMPINDEX}]
+        master_item:
+          key: intelbras.sfp.walk
+        preprocessing:
+        - type: SNMP_WALK_VALUE
+          parameters:
+          - 1.3.6.1.4.1.26138.1.1.1.1.1.10.{#SNMPINDEX}
+          - '0'
+        - *id002
+        tags:
+        - tag: component
+          value: optical
+        - tag: component
+          value: sfp
+        value_type: FLOAT
+        units: dBm
+      filter:
+        evaltype: AND
+        conditions:
+        - macro: '{#SFP.NAME}'
+          value: '{$SFP.IFNAME.MATCHES}'
+          operator: MATCHES_REGEX
+        - macro: '{#SFP.NAME}'
+          value: '{$SFP.IFNAME.NOT_MATCHES}'
+          operator: NOT_MATCHES_REGEX
+      graph_prototypes:
+      - uuid: a17c96ad438045f08c06db52a9150884
+        name: 'SFP {#SFP.NAME}: Potência óptica'
+        graph_items:
+        - drawtype: BOLD_LINE
+          color: 199C0D
+          item:
+            host: Intelbras OLT 8820i by SNMP
+            key: intelbras.sfp.txpower[{#SNMPINDEX}]
+        - sortorder: '1'
+          drawtype: GRADIENT_LINE
+          color: F63100
+          item:
+            host: Intelbras OLT 8820i by SNMP
+            key: intelbras.sfp.rxpower[{#SNMPINDEX}]
+      - uuid: 12d26138b9954c4296bcd177c81b8b03
+        name: 'SFP {#SFP.NAME}: Temperatura'
+        graph_items:
+        - drawtype: GRADIENT_LINE
+          color: 1A7C11
+          item:
+            host: Intelbras OLT 8820i by SNMP
+            key: intelbras.sfp.temp[{#SNMPINDEX}]
+    - uuid: c124b2b3743c411fa1933819b2b76a07
+      name: Discovery interfaces IF-MIB
+      type: DEPENDENT
+      key: intelbras.if.discovery
+      delay: '0'
+      lifetime_type: DELETE_AFTER
+      lifetime: 7d
+      description: Descobre interfaces pela IF-MIB padrão.
+      filter:
+        evaltype: AND
+        conditions:
+        - macro: '{#IFNAME}'
+          value: '{$IFNAME.MATCHES}'
+          operator: MATCHES_REGEX
+        - macro: '{#IFNAME}'
+          value: '{$IFNAME.NOT_MATCHES}'
+          operator: NOT_MATCHES_REGEX
+      preprocessing:
+      - type: SNMP_WALK_TO_JSON
+        parameters:
+        - '{#IFNAME}'
+        - 1.3.6.1.2.1.31.1.1.1.1
+        - '0'
+        - '{#IFOPERSTATUS}'
+        - 1.3.6.1.2.1.2.2.1.8
+        - '0'
+      - type: DISCARD_UNCHANGED_HEARTBEAT
+        parameters:
+        - 1h
+      master_item:
+        key: intelbras.if.walk
+      item_prototypes:
+      - uuid: ffae8b36f0a94388bec549a384466a13
+        name: 'Interface {#IFNAME}: Operational status'
+        type: DEPENDENT
+        key: intelbras.if.status[{#SNMPINDEX}]
+        delay: '0'
+        history: 7d
+        trends: '0'
+        valuemap:
+          name: IF-MIB::ifOperStatus
+        description: 'MIB: IF-MIB. Estado operacional da interface.'
+        preprocessing:
+        - type: SNMP_WALK_VALUE
+          parameters:
+          - 1.3.6.1.2.1.2.2.1.8.{#SNMPINDEX}
+          - '0'
+        - type: DISCARD_UNCHANGED_HEARTBEAT
+          parameters:
+          - 1h
+        master_item:
+          key: intelbras.if.walk
+        tags:
+        - tag: component
+          value: network
+        - tag: interface
+          value: '{#IFNAME}'
+      - uuid: 0e7424678b7c4febae3b0cee8b07e21c
+        name: 'Interface {#IFNAME}: Speed'
+        type: DEPENDENT
+        key: intelbras.if.speed[{#SNMPINDEX}]
+        delay: '0'
+        history: 7d
+        trends: '0'
+        value_type: FLOAT
+        units: bps
+        description: 'MIB: IF-MIB. Velocidade nominal reportada em bps.'
+        preprocessing:
+        - type: SNMP_WALK_VALUE
+          parameters:
+          - 1.3.6.1.2.1.31.1.1.1.15.{#SNMPINDEX}
+          - '0'
+          error_handler: DISCARD_VALUE
+        - type: MULTIPLIER
+          parameters:
+          - '1000000'
+        - type: DISCARD_UNCHANGED_HEARTBEAT
+          parameters:
+          - 1h
+        master_item:
+          key: intelbras.if.walk
+        tags:
+        - tag: component
+          value: network
+        - tag: interface
+          value: '{#IFNAME}'
+      - uuid: eaa5d2e101f341908b0969036c42ea86
+        name: 'Interface {#IFNAME}: Bits received'
+        type: DEPENDENT
+        key: intelbras.if.in[{#SNMPINDEX}]
+        delay: '0'
+        history: 7d
+        value_type: FLOAT
+        units: bps
+        description: 'MIB: IF-MIB. Tráfego de entrada em bits por segundo.'
+        preprocessing:
+        - type: SNMP_WALK_VALUE
+          parameters:
+          - 1.3.6.1.2.1.31.1.1.1.6.{#SNMPINDEX}
+          - '0'
+          error_handler: DISCARD_VALUE
+        - type: CHANGE_PER_SECOND
+          parameters:
+          - ''
+        - type: MULTIPLIER
+          parameters:
+          - '8'
+        master_item:
+          key: intelbras.if.walk
+        tags:
+        - tag: component
+          value: network
+        - tag: interface
+          value: '{#IFNAME}'
+      - uuid: 474b6d5b073b461cb664c3b99e44ddfe
+        name: 'Interface {#IFNAME}: Bits sent'
+        type: DEPENDENT
+        key: intelbras.if.out[{#SNMPINDEX}]
+        delay: '0'
+        history: 7d
+        value_type: FLOAT
+        units: bps
+        description: 'MIB: IF-MIB. Tráfego de saída em bits por segundo.'
+        preprocessing:
+        - type: SNMP_WALK_VALUE
+          parameters:
+          - 1.3.6.1.2.1.31.1.1.1.10.{#SNMPINDEX}
+          - '0'
+          error_handler: DISCARD_VALUE
+        - type: CHANGE_PER_SECOND
+          parameters:
+          - ''
+        - type: MULTIPLIER
+          parameters:
+          - '8'
+        master_item:
+          key: intelbras.if.walk
+        tags:
+        - tag: component
+          value: network
+        - tag: interface
+          value: '{#IFNAME}'
+      graph_prototypes:
+      - uuid: 8ccc40b5c5234a8b881f06b62df5c2aa
+        name: 'Interface {#IFNAME}: Tráfego'
+        graph_items:
+        - drawtype: GRADIENT_LINE
+          color: 199C0D
+          item:
+            host: Intelbras OLT 8820i by SNMP
+            key: intelbras.if.in[{#SNMPINDEX}]
+        - sortorder: '1'
+          drawtype: BOLD_LINE
+          color: F63100
+          item:
+            host: Intelbras OLT 8820i by SNMP
+            key: intelbras.if.out[{#SNMPINDEX}]
+    valuemaps:
+    - uuid: fae27622025f4219af77f902d709588e
+      name: Service state
+      mappings:
+      - value: '0'
+        newvalue: Down
+      - value: '1'
+        newvalue: Up
+    - uuid: b4cc00a01e6749658f810f43e60d55ec
+      name: Intelbras 8820i ONU registered
+      mappings:
+      - value: '1'
+        newvalue: Ocupada
+      - value: '2'
+        newvalue: Livre
+    - uuid: a3028a59c9af4ffb920cb025ff1a6cfc
+      name: Intelbras 8820i ONU active
+      mappings:
+      - value: '1'
+        newvalue: Ativa
+      - value: '2'
+        newvalue: Inativa
+    - uuid: 879cac10521340259625fe43c7b47836
+      name: Intelbras 8820i ONU OMCI
+      mappings:
+      - value: '0'
+        newvalue: Inativo
+      - value: '2'
+        newvalue: OK
+    - uuid: 8d18270aadc14b359c0345068e3c7ed3
+      name: Intelbras 8820i SFP present
+      mappings:
+      - value: '1'
+        newvalue: Ativo
+      - value: '2'
+        newvalue: Inativo
+    - uuid: d9adc83d10114dad80f3a859912910c1
+      name: IF-MIB::ifOperStatus
+      mappings:
+      - value: '1'
+        newvalue: up
+      - value: '2'
+        newvalue: down
+      - value: '3'
+        newvalue: testing
+      - value: '4'
+        newvalue: unknown
+      - value: '5'
+        newvalue: dormant
+      - value: '6'
+        newvalue: notPresent
+      - value: '7'
+        newvalue: lowerLayerDown
+    dashboards:
+    - uuid: c25dac8d24594579aa63b6cebec403e3
+      name: Intelbras 8820i - Visão geral
+      pages:
+      - name: Overview
+        widgets:
+        - type: graph
+          width: '12'
+          height: '5'
+          fields:
+          - type: GRAPH
+            name: graphid.0
+            value:
+              host: Intelbras OLT 8820i by SNMP
+              name: 'Intelbras 8820i: CPU e memória livre (%)'
+          - type: STRING
+            name: reference
+            value: OV001
+        - type: graph
+          width: '12'
+          height: '5'
+          fields:
+          - type: GRAPH
+            name: graphid.0
+            value:
+              host: Intelbras OLT 8820i by SNMP
+              name: 'Intelbras 8820i: Memória total e livre'
+          - type: STRING
+            name: reference
+            value: OV002
+          x: '12'
+        - type: graphprototype
+          width: '24'
+          height: '5'
+          fields:
+          - type: INTEGER
+            name: columns
+            value: '4'
+          - type: GRAPH_PROTOTYPE
+            name: graphid.0
+            value:
+              host: Intelbras OLT 8820i by SNMP
+              name: 'PON {#PON.NAME}: ONUs registradas e ativas'
+          - type: STRING
+            name: reference
+            value: OV003
+          y: '5'
+    - uuid: 222f2362b41741159539cacd6ab47357
+      name: Intelbras 8820i - PONs e ONUs
+      pages:
+      - name: Optical
+        widgets:
+        - type: graphprototype
+          width: '24'
+          height: '5'
+          fields:
+          - type: INTEGER
+            name: columns
+            value: '4'
+          - type: GRAPH_PROTOTYPE
+            name: graphid.0
+            value:
+              host: Intelbras OLT 8820i by SNMP
+              name: 'PON {#PON.NAME}: ONUs registradas e ativas'
+          - type: STRING
+            name: reference
+            value: PON01
+        - type: graphprototype
+          width: '24'
+          height: '10'
+          fields:
+          - type: INTEGER
+            name: columns
+            value: '4'
+          - type: GRAPH_PROTOTYPE
+            name: graphid.0
+            value:
+              host: Intelbras OLT 8820i by SNMP
+              name: 'ONU PON {#ONU.PORT}/{#ONU.ID}: Potência óptica'
+          - type: STRING
+            name: reference
+            value: PON02
+          y: '5'
+    - uuid: 4559b85d22dd4c7abffcc0cc80ecdcab
+      name: Intelbras 8820i - Interfaces e SFPs
+      pages:
+      - name: Interfaces
+        widgets:
+        - type: graphprototype
+          width: '24'
+          height: '5'
+          fields:
+          - type: INTEGER
+            name: columns
+            value: '4'
+          - type: GRAPH_PROTOTYPE
+            name: graphid.0
+            value:
+              host: Intelbras OLT 8820i by SNMP
+              name: 'SFP {#SFP.NAME}: Potência óptica'
+          - type: STRING
+            name: reference
+            value: INT01
+        - type: graphprototype
+          width: '24'
+          height: '5'
+          fields:
+          - type: INTEGER
+            name: columns
+            value: '4'
+          - type: GRAPH_PROTOTYPE
+            name: graphid.0
+            value:
+              host: Intelbras OLT 8820i by SNMP
+              name: 'SFP {#SFP.NAME}: Temperatura'
+          - type: STRING
+            name: reference
+            value: INT02
+          y: '5'
+        - type: graphprototype
+          width: '24'
+          height: '5'
+          fields:
+          - type: INTEGER
+            name: columns
+            value: '2'
+          - type: GRAPH_PROTOTYPE
+            name: graphid.0
+            value:
+              host: Intelbras OLT 8820i by SNMP
+              name: 'Interface {#IFNAME}: Tráfego'
+          - type: STRING
+            name: reference
+            value: INT03
+          y: '10'
+  graphs:
+  - uuid: adfd8a2c9ef144a08562ab35742e0ae4
+    name: 'Intelbras 8820i: CPU e memória livre (%)'
+    graph_items:
+    - drawtype: GRADIENT_LINE
+      color: 199C0D
+      item:
+        host: Intelbras OLT 8820i by SNMP
+        key: intelbras.cpu.util
+    - sortorder: '1'
+      drawtype: BOLD_LINE
+      color: F63100
+      item:
+        host: Intelbras OLT 8820i by SNMP
+        key: intelbras.mem.free.pct
+  - uuid: 1e6d5e8ec70e40bab56b83edcc6538ef
+    name: 'Intelbras 8820i: Memória total e livre'
+    graph_items:
+    - drawtype: BOLD_LINE
+      color: 199C0D
+      item:
+        host: Intelbras OLT 8820i by SNMP
+        key: intelbras.mem.total
+    - sortorder: '1'
+      drawtype: GRADIENT_LINE
+      color: F63100
+      item:
+        host: Intelbras OLT 8820i by SNMP
+        key: intelbras.mem.free
