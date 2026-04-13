@@ -1,3 +1,6 @@
+<img width="439" height="115" alt="zabbix" src="https://github.com/user-attachments/assets/730bf965-3b77-4d5e-89b0-ba47655a7144" />
+<img width="394" height="128" alt="intelbras" src="https://github.com/user-attachments/assets/c664389f-c101-431a-a614-a59732af19d5" />
+
 # Template Zabbix para Intelbras OLT 8820i via SNMP
 
 Template completo para **monitoramento da OLT Intelbras 8820i no Zabbix 7.0** utilizando **SNMP v2c**, com **descoberta automática (LLD)** de ONUs, interfaces e módulos ópticos.
