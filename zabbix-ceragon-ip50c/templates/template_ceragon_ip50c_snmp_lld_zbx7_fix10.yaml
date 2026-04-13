@@ -1,0 +1,1322 @@
+zabbix_export:
+  version: '7.0'
+  template_groups:
+  - uuid: b2f9c0ba0b784193aabaf05143ed7c7b
+    name: Templates/Network devices
+  templates:
+  - uuid: 69de69341e4949a09dd23e36d988ef21
+    template: Template Ceragon IP-50C by SNMP
+    name: Template Ceragon IP-50C by SNMP
+    description: 'Template para monitoramento de rádios Ceragon IP-50C via SNMP no
+      Zabbix 7.0.18.
+
+
+      Inclui:
+
+      - Itens estáticos de sistema;
+
+      - Item mestre de SNMP walk para interfaces;
+
+      - Descoberta automática (LLD) de interfaces via IF-MIB;
+
+      - Protótipos de itens para status, velocidade, tráfego, erros e descartes;
+
+      - Protótipos de triggers para link down, alta utilização e alta taxa de erros;
+
+      - Protótipo de gráfico de tráfego por interface;
+
+      - Descoberta separada do grupo Multi Carrier ABC, com capacidade agregada RX/TX
+      e capacidade por carrier;
+
+      - Descoberta específica dos rádios com nível RX remoto, nível RX local, potência
+      TX local, MSE local e parâmetros do peer remoto.
+
+
+      Observações importantes:
+
+      - O tráfego real do enlace continua sendo monitorado pelas interfaces Ethernet
+      expostas no IF-MIB.
+
+      - As métricas do grupo Multi Carrier representam capacidade agregada atual do
+      grupo, não tráfego real em octetos.
+
+      - Os OIDs de rádio incluídos neste template foram validados neste firmware do
+      IP-50C.
+
+
+      Histórico de ajustes:
+
+      - fix4: sysUpTime convertido de centésimos para segundos; descoberta do Multi
+      Carrier separada para evitar itens não suportados de tráfego/erros.
+
+      - fix7: inclusão de métricas proprietárias do grupo Multi Carrier ABC para capacidade
+      agregada RX/TX e capacidade por carrier; mantido o tráfego real pelas interfaces
+      Ethernet do IF-MIB.
+
+      - fix8: itens em português para o grupo Multi Carrier; inclusão de descoberta
+      específica dos rádios com nível RX remoto confirmado pela árvore proprietária
+      MWRM-RADIO-MIB.
+
+      - fix9: inclusão do nível RX local da RFU, potência TX local da RFU e MSE local
+      por rádio, com OIDs validados neste firmware.
+
+      - fix10: inclusão de triggers adicionais para MSE degradado, potência TX local
+      fora da faixa, capacidade agregada Multi Carrier baixa e desequilíbrio entre
+      carriers.'
+    vendor:
+      name: Custom
+      version: 7.0-1
+    groups:
+    - name: Templates/Network devices
+    macros:
+    - macro: '{$IFCONTROL}'
+      value: '1'
+      description: 1=interface importante; 0=ignora trigger de link down.
+    - macro: '{$IF.UTIL.MAX}'
+      value: '85'
+      description: Percentual de utilização para trigger de alta banda.
+    - macro: '{$IF.ERRORS.WARN}'
+      value: '2'
+      description: Erros por segundo para trigger de alta taxa de erros.
+    - macro: '{$NET.IF.IFADMINSTATUS.MATCHES}'
+      value: ^.*$
+      description: 'Filtro LLD: ifAdminStatus permitido.'
+    - macro: '{$NET.IF.IFADMINSTATUS.NOT_MATCHES}'
+      value: ^$
+      description: 'Filtro LLD: ifAdminStatus ignorado.'
+    - macro: '{$NET.IF.IFOPERSTATUS.MATCHES}'
+      value: ^.*$
+      description: 'Filtro LLD: ifOperStatus permitido.'
+    - macro: '{$NET.IF.IFOPERSTATUS.NOT_MATCHES}'
+      value: ^$
+      description: 'Filtro LLD: ifOperStatus ignorado.'
+    - macro: '{$NET.IF.IFNAME.MATCHES}'
+      value: ^(Ethernet:|Radio:|Management:)
+      description: 'Filtro LLD: nomes de interface desejados (sem Multi Carrier).'
+    - macro: '{$NET.IF.IFNAME.NOT_MATCHES}'
+      value: ^$
+      description: 'Filtro LLD: nomes de interface ignorados.'
+    - macro: '{$NET.IF.IFDESCR.MATCHES}'
+      value: ^.*$
+      description: 'Filtro LLD: ifDescr permitido.'
+    - macro: '{$NET.IF.IFDESCR.NOT_MATCHES}'
+      value: ^$
+      description: 'Filtro LLD: ifDescr ignorado.'
+    - macro: '{$NET.IF.IFTYPE.MATCHES}'
+      value: ^.*$
+      description: 'Filtro LLD: ifType permitido.'
+    - macro: '{$NET.IF.IFTYPE.NOT_MATCHES}'
+      value: ^$
+      description: 'Filtro LLD: ifType ignorado.'
+    - macro: '{$CERAGON.RADIO.REMOTE.RX.WARN}'
+      value: '-45'
+      description: Limiar de alerta para nível RX remoto do rádio (dBm).
+    - macro: '{$CERAGON.RADIO.REMOTE.RX.HIGH}'
+      value: '-35'
+      description: Limiar alto para nível RX remoto do rádio (dBm), útil para referência
+        operacional.
+    - macro: '{$CERAGON.RADIO.LOCAL.RX.WARN}'
+      value: '-45'
+      description: Limiar de alerta para nível RX local da RFU (dBm).
+    - macro: '{$CERAGON.RADIO.MSE.WARN}'
+      value: '-45'
+      description: Limiar de alerta para MSE local (dB). Valores mais negativos indicam
+        pior qualidade do enlace.
+    - macro: '{$CERAGON.RADIO.LOCAL.TX.MIN}'
+      value: '15'
+      description: Limiar mínimo esperado para potência TX local da RFU (dBm).
+    - macro: '{$CERAGON.RADIO.LOCAL.TX.MAX}'
+      value: '25'
+      description: Limiar máximo esperado para potência TX local da RFU (dBm).
+    - macro: '{$CERAGON.MC.CAPACITY.MIN}'
+      value: '1500000000'
+      description: Capacidade agregada mínima aceitável do grupo Multi Carrier ABC
+        (bps).
+    - macro: '{$CERAGON.MC.CARRIER.DIFF.MAX}'
+      value: '300000000'
+      description: Diferença máxima aceitável entre carrier 1 e carrier 2 do grupo
+        Multi Carrier ABC (bps).
+    valuemaps:
+    - uuid: ea422f6813c243cea214d925ac178c73
+      name: IF-MIB::ifAdminStatus
+      mappings:
+      - value: '1'
+        newvalue: up
+      - value: '2'
+        newvalue: down
+      - value: '3'
+        newvalue: testing
+    - uuid: 7c567fb420584862bfd8de0f859f2135
+      name: IF-MIB::ifOperStatus
+      mappings:
+      - value: '1'
+        newvalue: up
+      - value: '2'
+        newvalue: down
+      - value: '3'
+        newvalue: testing
+      - value: '4'
+        newvalue: unknown
+      - value: '5'
+        newvalue: dormant
+      - value: '6'
+        newvalue: notPresent
+      - value: '7'
+        newvalue: lowerLayerDown
+    items:
+    - uuid: 4d0f9331311b4c57bc3a99a5658e2322
+      name: 'Ceragon: SNMP agent availability'
+      type: INTERNAL
+      key: zabbix[host,snmp,available]
+      history: 7d
+      description: Disponibilidade das coletas SNMP no host.
+      tags:
+      - tag: component
+        value: health
+      triggers:
+      - uuid: ac70bbd1c34045f8b746e98737172dd7
+        expression: max(/Template Ceragon IP-50C by SNMP/zabbix[host,snmp,available],5m)=0
+        name: 'Ceragon: indisponível por SNMP'
+        priority: HIGH
+        description: Sem coleta SNMP no período. Verifique conectividade, ACL e community.
+        tags:
+        - tag: scope
+          value: availability
+    - uuid: c876de6dbf68472792ac3ef404999365
+      name: 'Ceragon: System description'
+      type: SNMP_AGENT
+      snmp_oid: 1.3.6.1.2.1.1.1.0
+      key: system.descr[sysDescr.0]
+      delay: 1h
+      history: 7d
+      trends: '0'
+      value_type: CHAR
+      preprocessing:
+      - type: DISCARD_UNCHANGED_HEARTBEAT
+        parameters:
+        - 1d
+      tags:
+      - tag: component
+        value: system
+    - uuid: fdcb3fa7210247be907b5b82025f649f
+      name: 'Ceragon: System name'
+      type: SNMP_AGENT
+      snmp_oid: 1.3.6.1.2.1.1.5.0
+      key: system.name[sysName.0]
+      delay: 1h
+      history: 7d
+      trends: '0'
+      value_type: CHAR
+      preprocessing:
+      - type: DISCARD_UNCHANGED_HEARTBEAT
+        parameters:
+        - 1d
+      tags:
+      - tag: component
+        value: system
+    - uuid: 580193b3d5ac463e81d79b651bae1b84
+      name: 'Ceragon: System object ID'
+      type: SNMP_AGENT
+      snmp_oid: 1.3.6.1.2.1.1.2.0
+      key: system.objectid[sysObjectID.0]
+      delay: 1h
+      history: 7d
+      trends: '0'
+      value_type: CHAR
+      preprocessing:
+      - type: DISCARD_UNCHANGED_HEARTBEAT
+        parameters:
+        - 1d
+      tags:
+      - tag: component
+        value: system
+    - uuid: 40a87bf3550e476aa85193decb7e49eb
+      name: 'Ceragon: Uptime'
+      type: SNMP_AGENT
+      snmp_oid: 1.3.6.1.2.1.1.3.0
+      key: system.uptime[sysUpTime.0]
+      delay: 5m
+      history: 7d
+      trends: '0'
+      units: uptime
+      tags:
+      - tag: component
+        value: system
+      preprocessing:
+      - type: MULTIPLIER
+        parameters:
+        - '0.01'
+    - uuid: 918ad1365ad440e1887793cd8e4e3ad8
+      name: 'Ceragon: Model'
+      type: SNMP_AGENT
+      snmp_oid: 1.3.6.1.4.1.2281.10.1.2.3.0
+      key: ceragon.model
+      delay: 1h
+      history: 7d
+      trends: '0'
+      value_type: CHAR
+      preprocessing:
+      - type: DISCARD_UNCHANGED_HEARTBEAT
+        parameters:
+        - 1d
+      tags:
+      - tag: component
+        value: inventory
+    - uuid: 8c74492e9666457996e31a1fb7fc7c93
+      name: 'Ceragon: SNMP walk interfaces'
+      type: SNMP_AGENT
+      snmp_oid: walk[1.3.6.1.2.1.2.2.1.8,1.3.6.1.2.1.2.2.1.7,1.3.6.1.2.1.31.1.1.1.1,1.3.6.1.2.1.2.2.1.2,1.3.6.1.2.1.2.2.1.3,1.3.6.1.2.1.31.1.1.1.15,1.3.6.1.2.1.31.1.1.1.6,1.3.6.1.2.1.31.1.1.1.10,1.3.6.1.2.1.2.2.1.14,1.3.6.1.2.1.2.2.1.20,1.3.6.1.2.1.2.2.1.13,1.3.6.1.2.1.2.2.1.19]
+      key: net.if.walk
+      delay: 3m
+      history: '0'
+      trends: '0'
+      value_type: TEXT
+      description: Item mestre para descoberta e coleta de interfaces via IF-MIB.
+      tags:
+      - tag: component
+        value: raw
+    discovery_rules:
+    - uuid: a585234d606347aab51cbc4360d4531d
+      name: 'Ceragon: Network interfaces discovery'
+      type: DEPENDENT
+      key: net.if.discovery
+      delay: '0'
+      filter:
+        evaltype: AND
+        conditions:
+        - macro: '{#IFADMINSTATUS}'
+          value: '{$NET.IF.IFADMINSTATUS.MATCHES}'
+          formulaid: A
+        - macro: '{#IFADMINSTATUS}'
+          value: '{$NET.IF.IFADMINSTATUS.NOT_MATCHES}'
+          operator: NOT_MATCHES_REGEX
+          formulaid: B
+        - macro: '{#IFDESCR}'
+          value: '{$NET.IF.IFDESCR.MATCHES}'
+          formulaid: C
+        - macro: '{#IFDESCR}'
+          value: '{$NET.IF.IFDESCR.NOT_MATCHES}'
+          operator: NOT_MATCHES_REGEX
+          formulaid: D
+        - macro: '{#IFNAME}'
+          value: '{$NET.IF.IFNAME.MATCHES}'
+          formulaid: E
+        - macro: '{#IFNAME}'
+          value: '{$NET.IF.IFNAME.NOT_MATCHES}'
+          operator: NOT_MATCHES_REGEX
+          formulaid: F
+        - macro: '{#IFOPERSTATUS}'
+          value: '{$NET.IF.IFOPERSTATUS.MATCHES}'
+          formulaid: G
+        - macro: '{#IFOPERSTATUS}'
+          value: '{$NET.IF.IFOPERSTATUS.NOT_MATCHES}'
+          operator: NOT_MATCHES_REGEX
+          formulaid: H
+        - macro: '{#IFTYPE}'
+          value: '{$NET.IF.IFTYPE.MATCHES}'
+          formulaid: I
+        - macro: '{#IFTYPE}'
+          value: '{$NET.IF.IFTYPE.NOT_MATCHES}'
+          operator: NOT_MATCHES_REGEX
+          formulaid: J
+      description: Descoberta automática de interfaces a partir do IF-MIB.
+      item_prototypes:
+      - uuid: 45dcf34392f94ca5ad5b32c353fcbae2
+        name: 'Interface {#IFNAME}: Administrative status'
+        type: DEPENDENT
+        key: net.if.admin.status[ifAdminStatus.{#SNMPINDEX}]
+        delay: '0'
+        history: 7d
+        preprocessing:
+        - type: SNMP_WALK_VALUE
+          parameters:
+          - 1.3.6.1.2.1.2.2.1.7.{#SNMPINDEX}
+          - '0'
+        - type: DISCARD_UNCHANGED_HEARTBEAT
+          parameters:
+          - 1h
+        master_item:
+          key: net.if.walk
+        tags:
+        - tag: component
+          value: network
+        - tag: interface
+          value: '{#IFNAME}'
+        trends: '0'
+        valuemap:
+          name: IF-MIB::ifAdminStatus
+      - uuid: 095795e8da83492595befc71b1624a3a
+        name: 'Interface {#IFNAME}: Operational status'
+        type: DEPENDENT
+        key: net.if.status[ifOperStatus.{#SNMPINDEX}]
+        delay: '0'
+        history: 7d
+        preprocessing:
+        - type: SNMP_WALK_VALUE
+          parameters:
+          - 1.3.6.1.2.1.2.2.1.8.{#SNMPINDEX}
+          - '0'
+        master_item:
+          key: net.if.walk
+        tags:
+        - tag: component
+          value: network
+        - tag: interface
+          value: '{#IFNAME}'
+        trends: '0'
+        valuemap:
+          name: IF-MIB::ifOperStatus
+        trigger_prototypes:
+        - uuid: 02518f6cd77c47ca932b0621dcca9e13
+          expression: '{$IFCONTROL:"{#IFNAME}"}=1 and last(/Template Ceragon IP-50C
+            by SNMP/net.if.status[ifOperStatus.{#SNMPINDEX}])=2 and (last(/Template
+            Ceragon IP-50C by SNMP/net.if.status[ifOperStatus.{#SNMPINDEX}],#1)<>last(/Template
+            Ceragon IP-50C by SNMP/net.if.status[ifOperStatus.{#SNMPINDEX}],#2))'
+          recovery_mode: RECOVERY_EXPRESSION
+          recovery_expression: last(/Template Ceragon IP-50C by SNMP/net.if.status[ifOperStatus.{#SNMPINDEX}])<>2
+            or {$IFCONTROL:"{#IFNAME}"}=0
+          name: 'Interface {#IFNAME}: Link down'
+          opdata: 'Estado atual: {ITEM.LASTVALUE1}'
+          priority: AVERAGE
+          description: Dispara quando a interface muda para down e a macro de contexto
+            IFCONTROL está habilitada.
+          manual_close: 'YES'
+          tags:
+          - tag: scope
+            value: availability
+      - uuid: b96b81200c7145ae85324a5b78d69a93
+        name: 'Interface {#IFNAME}: Speed'
+        type: DEPENDENT
+        key: net.if.speed[ifHighSpeed.{#SNMPINDEX}]
+        delay: '0'
+        history: 7d
+        preprocessing:
+        - type: SNMP_WALK_VALUE
+          parameters:
+          - 1.3.6.1.2.1.31.1.1.1.15.{#SNMPINDEX}
+          - '0'
+        - type: MULTIPLIER
+          parameters:
+          - '1000000'
+        - type: DISCARD_UNCHANGED_HEARTBEAT
+          parameters:
+          - 1h
+        master_item:
+          key: net.if.walk
+        tags:
+        - tag: component
+          value: network
+        - tag: interface
+          value: '{#IFNAME}'
+        trends: '0'
+        units: bps
+      - uuid: 5c2c9ab32834429abd54ee60b3257bfd
+        name: 'Interface {#IFNAME}: Bits received'
+        type: DEPENDENT
+        key: net.if.in[ifHCInOctets.{#SNMPINDEX}]
+        delay: '0'
+        history: 7d
+        preprocessing:
+        - type: SNMP_WALK_VALUE
+          parameters:
+          - 1.3.6.1.2.1.31.1.1.1.6.{#SNMPINDEX}
+          - '0'
+        - type: CHANGE_PER_SECOND
+          parameters:
+          - ''
+        - type: MULTIPLIER
+          parameters:
+          - '8'
+        master_item:
+          key: net.if.walk
+        tags:
+        - tag: component
+          value: network
+        - tag: interface
+          value: '{#IFNAME}'
+        units: bps
+      - uuid: 0c7d15f98f63442582473c1ec66fa324
+        name: 'Interface {#IFNAME}: Bits sent'
+        type: DEPENDENT
+        key: net.if.out[ifHCOutOctets.{#SNMPINDEX}]
+        delay: '0'
+        history: 7d
+        preprocessing:
+        - type: SNMP_WALK_VALUE
+          parameters:
+          - 1.3.6.1.2.1.31.1.1.1.10.{#SNMPINDEX}
+          - '0'
+        - type: CHANGE_PER_SECOND
+          parameters:
+          - ''
+        - type: MULTIPLIER
+          parameters:
+          - '8'
+        master_item:
+          key: net.if.walk
+        tags:
+        - tag: component
+          value: network
+        - tag: interface
+          value: '{#IFNAME}'
+        units: bps
+      - uuid: 7bfd52ed8d42444b821e954d6e915217
+        name: 'Interface {#IFNAME}: Inbound errors'
+        type: DEPENDENT
+        key: net.if.in.errors[ifInErrors.{#SNMPINDEX}]
+        delay: '0'
+        history: 7d
+        preprocessing:
+        - type: SNMP_WALK_VALUE
+          parameters:
+          - 1.3.6.1.2.1.2.2.1.14.{#SNMPINDEX}
+          - '0'
+        - type: CHANGE_PER_SECOND
+          parameters:
+          - ''
+        - type: DISCARD_UNCHANGED_HEARTBEAT
+          parameters:
+          - 3m
+        master_item:
+          key: net.if.walk
+        tags:
+        - tag: component
+          value: network
+        - tag: interface
+          value: '{#IFNAME}'
+      - uuid: e9c3a62fcb414daca3437cab50fc215c
+        name: 'Interface {#IFNAME}: Outbound errors'
+        type: DEPENDENT
+        key: net.if.out.errors[ifOutErrors.{#SNMPINDEX}]
+        delay: '0'
+        history: 7d
+        preprocessing:
+        - type: SNMP_WALK_VALUE
+          parameters:
+          - 1.3.6.1.2.1.2.2.1.20.{#SNMPINDEX}
+          - '0'
+        - type: CHANGE_PER_SECOND
+          parameters:
+          - ''
+        - type: DISCARD_UNCHANGED_HEARTBEAT
+          parameters:
+          - 3m
+        master_item:
+          key: net.if.walk
+        tags:
+        - tag: component
+          value: network
+        - tag: interface
+          value: '{#IFNAME}'
+      - uuid: 48c68b0ee76f42cba17086b527694470
+        name: 'Interface {#IFNAME}: Inbound discards'
+        type: DEPENDENT
+        key: net.if.in.discards[ifInDiscards.{#SNMPINDEX}]
+        delay: '0'
+        history: 7d
+        preprocessing:
+        - type: SNMP_WALK_VALUE
+          parameters:
+          - 1.3.6.1.2.1.2.2.1.13.{#SNMPINDEX}
+          - '0'
+        - type: CHANGE_PER_SECOND
+          parameters:
+          - ''
+        - type: DISCARD_UNCHANGED_HEARTBEAT
+          parameters:
+          - 3m
+        master_item:
+          key: net.if.walk
+        tags:
+        - tag: component
+          value: network
+        - tag: interface
+          value: '{#IFNAME}'
+      - uuid: 2f1bed525cd547c6bc23a28d3b96d414
+        name: 'Interface {#IFNAME}: Outbound discards'
+        type: DEPENDENT
+        key: net.if.out.discards[ifOutDiscards.{#SNMPINDEX}]
+        delay: '0'
+        history: 7d
+        preprocessing:
+        - type: SNMP_WALK_VALUE
+          parameters:
+          - 1.3.6.1.2.1.2.2.1.19.{#SNMPINDEX}
+          - '0'
+        - type: CHANGE_PER_SECOND
+          parameters:
+          - ''
+        - type: DISCARD_UNCHANGED_HEARTBEAT
+          parameters:
+          - 3m
+        master_item:
+          key: net.if.walk
+        tags:
+        - tag: component
+          value: network
+        - tag: interface
+          value: '{#IFNAME}'
+      trigger_prototypes:
+      - uuid: 685bc78e4767446dad4bcbf16dd74a0e
+        expression: (avg(/Template Ceragon IP-50C by SNMP/net.if.in[ifHCInOctets.{#SNMPINDEX}],15m)>({$IF.UTIL.MAX:"{#IFNAME}"}/100)*last(/Template
+          Ceragon IP-50C by SNMP/net.if.speed[ifHighSpeed.{#SNMPINDEX}]) or avg(/Template
+          Ceragon IP-50C by SNMP/net.if.out[ifHCOutOctets.{#SNMPINDEX}],15m)>({$IF.UTIL.MAX:"{#IFNAME}"}/100)*last(/Template
+          Ceragon IP-50C by SNMP/net.if.speed[ifHighSpeed.{#SNMPINDEX}])) and last(/Template
+          Ceragon IP-50C by SNMP/net.if.speed[ifHighSpeed.{#SNMPINDEX}])>0
+        recovery_mode: RECOVERY_EXPRESSION
+        recovery_expression: avg(/Template Ceragon IP-50C by SNMP/net.if.in[ifHCInOctets.{#SNMPINDEX}],15m)<(({$IF.UTIL.MAX:"{#IFNAME}"}-3)/100)*last(/Template
+          Ceragon IP-50C by SNMP/net.if.speed[ifHighSpeed.{#SNMPINDEX}]) and avg(/Template
+          Ceragon IP-50C by SNMP/net.if.out[ifHCOutOctets.{#SNMPINDEX}],15m)<(({$IF.UTIL.MAX:"{#IFNAME}"}-3)/100)*last(/Template
+          Ceragon IP-50C by SNMP/net.if.speed[ifHighSpeed.{#SNMPINDEX}])
+        name: 'Interface {#IFNAME}: High bandwidth usage'
+        event_name: 'Interface {#IFNAME}: High bandwidth usage (>{$IF.UTIL.MAX:"{#IFNAME}"}%)'
+        opdata: 'In: {ITEM.LASTVALUE1}, out: {ITEM.LASTVALUE3}, speed: {ITEM.LASTVALUE2}'
+        priority: WARNING
+        description: Utilização média da interface acima do limite configurado.
+        manual_close: 'YES'
+        dependencies:
+        - name: 'Interface {#IFNAME}: Link down'
+          expression: '{$IFCONTROL:"{#IFNAME}"}=1 and last(/Template Ceragon IP-50C
+            by SNMP/net.if.status[ifOperStatus.{#SNMPINDEX}])=2 and (last(/Template
+            Ceragon IP-50C by SNMP/net.if.status[ifOperStatus.{#SNMPINDEX}],#1)<>last(/Template
+            Ceragon IP-50C by SNMP/net.if.status[ifOperStatus.{#SNMPINDEX}],#2))'
+          recovery_expression: last(/Template Ceragon IP-50C by SNMP/net.if.status[ifOperStatus.{#SNMPINDEX}])<>2
+            or {$IFCONTROL:"{#IFNAME}"}=0
+        tags:
+        - tag: scope
+          value: performance
+      - uuid: 5a0bfedeaee1480484471ab8b2d86c85
+        expression: min(/Template Ceragon IP-50C by SNMP/net.if.in.errors[ifInErrors.{#SNMPINDEX}],5m)>{$IF.ERRORS.WARN:"{#IFNAME}"}
+          or min(/Template Ceragon IP-50C by SNMP/net.if.out.errors[ifOutErrors.{#SNMPINDEX}],5m)>{$IF.ERRORS.WARN:"{#IFNAME}"}
+        recovery_mode: RECOVERY_EXPRESSION
+        recovery_expression: max(/Template Ceragon IP-50C by SNMP/net.if.in.errors[ifInErrors.{#SNMPINDEX}],5m)<{$IF.ERRORS.WARN:"{#IFNAME}"}*0.8
+          and max(/Template Ceragon IP-50C by SNMP/net.if.out.errors[ifOutErrors.{#SNMPINDEX}],5m)<{$IF.ERRORS.WARN:"{#IFNAME}"}*0.8
+        name: 'Interface {#IFNAME}: High error rate'
+        event_name: 'Interface {#IFNAME}: High error rate (>{$IF.ERRORS.WARN:"{#IFNAME}"}
+          por segundo)'
+        opdata: 'In: {ITEM.LASTVALUE1}, out: {ITEM.LASTVALUE2}'
+        priority: WARNING
+        description: Taxa de erros acima do limite configurado.
+        manual_close: 'YES'
+        dependencies:
+        - name: 'Interface {#IFNAME}: Link down'
+          expression: '{$IFCONTROL:"{#IFNAME}"}=1 and last(/Template Ceragon IP-50C
+            by SNMP/net.if.status[ifOperStatus.{#SNMPINDEX}])=2 and (last(/Template
+            Ceragon IP-50C by SNMP/net.if.status[ifOperStatus.{#SNMPINDEX}],#1)<>last(/Template
+            Ceragon IP-50C by SNMP/net.if.status[ifOperStatus.{#SNMPINDEX}],#2))'
+          recovery_expression: last(/Template Ceragon IP-50C by SNMP/net.if.status[ifOperStatus.{#SNMPINDEX}])<>2
+            or {$IFCONTROL:"{#IFNAME}"}=0
+        tags:
+        - tag: scope
+          value: availability
+        - tag: scope
+          value: performance
+      graph_prototypes:
+      - uuid: 4a6f1f0bcbc0464db7674dd5707c7afa
+        name: 'Interface {#IFNAME}: Network traffic'
+        graph_items:
+        - drawtype: GRADIENT_LINE
+          color: 199C0D
+          item:
+            host: Template Ceragon IP-50C by SNMP
+            key: net.if.in[ifHCInOctets.{#SNMPINDEX}]
+        - sortorder: '1'
+          drawtype: BOLD_LINE
+          color: F63100
+          item:
+            host: Template Ceragon IP-50C by SNMP
+            key: net.if.out[ifHCOutOctets.{#SNMPINDEX}]
+        - sortorder: '2'
+          color: 00611C
+          yaxisside: RIGHT
+          item:
+            host: Template Ceragon IP-50C by SNMP
+            key: net.if.out.errors[ifOutErrors.{#SNMPINDEX}]
+        - sortorder: '3'
+          color: F7941D
+          yaxisside: RIGHT
+          item:
+            host: Template Ceragon IP-50C by SNMP
+            key: net.if.in.errors[ifInErrors.{#SNMPINDEX}]
+        - sortorder: '4'
+          color: FC6EA3
+          yaxisside: RIGHT
+          item:
+            host: Template Ceragon IP-50C by SNMP
+            key: net.if.out.discards[ifOutDiscards.{#SNMPINDEX}]
+        - sortorder: '5'
+          color: 6C59DC
+          yaxisside: RIGHT
+          item:
+            host: Template Ceragon IP-50C by SNMP
+            key: net.if.in.discards[ifInDiscards.{#SNMPINDEX}]
+      master_item:
+        key: net.if.walk
+      preprocessing:
+      - type: SNMP_WALK_TO_JSON
+        parameters:
+        - '{#IFOPERSTATUS}'
+        - 1.3.6.1.2.1.2.2.1.8
+        - '0'
+        - '{#IFADMINSTATUS}'
+        - 1.3.6.1.2.1.2.2.1.7
+        - '0'
+        - '{#IFNAME}'
+        - 1.3.6.1.2.1.31.1.1.1.1
+        - '0'
+        - '{#IFDESCR}'
+        - 1.3.6.1.2.1.2.2.1.2
+        - '0'
+        - '{#IFTYPE}'
+        - 1.3.6.1.2.1.2.2.1.3
+        - '0'
+      - type: DISCARD_UNCHANGED_HEARTBEAT
+        parameters:
+        - 1h
+    - uuid: 09e606c60ebf4eef9e1021317d89d569
+      name: 'Ceragon: Descoberta Multi Carrier'
+      type: DEPENDENT
+      key: net.if.mc.discovery
+      delay: '0'
+      filter:
+        evaltype: AND
+        conditions:
+        - macro: '{#IFADMINSTATUS}'
+          value: '{$NET.IF.IFADMINSTATUS.MATCHES}'
+          formulaid: A
+        - macro: '{#IFADMINSTATUS}'
+          value: '{$NET.IF.IFADMINSTATUS.NOT_MATCHES}'
+          operator: NOT_MATCHES_REGEX
+          formulaid: B
+        - macro: '{#IFDESCR}'
+          value: '{$NET.IF.IFDESCR.MATCHES}'
+          formulaid: C
+        - macro: '{#IFDESCR}'
+          value: '{$NET.IF.IFDESCR.NOT_MATCHES}'
+          operator: NOT_MATCHES_REGEX
+          formulaid: D
+        - macro: '{#IFNAME}'
+          value: ^Enhanced Multi Carrier
+          formulaid: E
+        - macro: '{#IFNAME}'
+          value: ^$
+          operator: NOT_MATCHES_REGEX
+          formulaid: F
+        - macro: '{#IFOPERSTATUS}'
+          value: '{$NET.IF.IFOPERSTATUS.MATCHES}'
+          formulaid: G
+        - macro: '{#IFOPERSTATUS}'
+          value: '{$NET.IF.IFOPERSTATUS.NOT_MATCHES}'
+          operator: NOT_MATCHES_REGEX
+          formulaid: H
+        - macro: '{#IFTYPE}'
+          value: '{$NET.IF.IFTYPE.MATCHES}'
+          formulaid: I
+        - macro: '{#IFTYPE}'
+          value: '{$NET.IF.IFTYPE.NOT_MATCHES}'
+          operator: NOT_MATCHES_REGEX
+          formulaid: J
+      description: Descoberta do grupo Enhanced Multi Carrier apenas com status, velocidade
+        e capacidade agregada.
+      item_prototypes:
+      - uuid: ac84cfc79485450ab1050c21367c4d1b
+        name: 'Interface {#IFNAME}: Status administrativo'
+        type: DEPENDENT
+        key: net.if.mc.admin.status[ifAdminStatus.{#SNMPINDEX}]
+        delay: '0'
+        history: 7d
+        preprocessing:
+        - type: SNMP_WALK_VALUE
+          parameters:
+          - 1.3.6.1.2.1.2.2.1.7.{#SNMPINDEX}
+          - '0'
+        - type: DISCARD_UNCHANGED_HEARTBEAT
+          parameters:
+          - 1h
+        master_item:
+          key: net.if.walk
+        tags:
+        - tag: component
+          value: network
+        - tag: interface
+          value: '{#IFNAME}'
+        trends: '0'
+        valuemap:
+          name: IF-MIB::ifAdminStatus
+      - uuid: c47b467296624fe6ae6d7dee781051c4
+        name: 'Interface {#IFNAME}: Status operacional'
+        type: DEPENDENT
+        key: net.if.mc.status[ifOperStatus.{#SNMPINDEX}]
+        delay: '0'
+        history: 7d
+        preprocessing:
+        - type: SNMP_WALK_VALUE
+          parameters:
+          - 1.3.6.1.2.1.2.2.1.8.{#SNMPINDEX}
+          - '0'
+        master_item:
+          key: net.if.walk
+        tags:
+        - tag: component
+          value: network
+        - tag: interface
+          value: '{#IFNAME}'
+        trends: '0'
+        valuemap:
+          name: IF-MIB::ifOperStatus
+        trigger_prototypes:
+        - uuid: 0e28d79ace82440ca347c1c9bcf791dc
+          expression: '{$IFCONTROL:"{#IFNAME}"}=1 and last(/Template Ceragon IP-50C
+            by SNMP/net.if.mc.status[ifOperStatus.{#SNMPINDEX}])=2 and (last(/Template
+            Ceragon IP-50C by SNMP/net.if.mc.status[ifOperStatus.{#SNMPINDEX}],#1)<>last(/Template
+            Ceragon IP-50C by SNMP/net.if.mc.status[ifOperStatus.{#SNMPINDEX}],#2))'
+          recovery_mode: RECOVERY_EXPRESSION
+          recovery_expression: last(/Template Ceragon IP-50C by SNMP/net.if.mc.status[ifOperStatus.{#SNMPINDEX}])<>2
+            or {$IFCONTROL:"{#IFNAME}"}=0
+          name: 'Interface {#IFNAME}: Link down'
+          opdata: 'Estado atual: {ITEM.LASTVALUE1}'
+          priority: AVERAGE
+          description: Dispara quando a interface muda para down e a macro de contexto
+            IFCONTROL está habilitada.
+          manual_close: 'YES'
+          tags:
+          - tag: scope
+            value: availability
+      - uuid: 59c8dbdac3424716ba6dbdfb86d5826c
+        name: 'Interface {#IFNAME}: Velocidade'
+        type: DEPENDENT
+        key: net.if.mc.speed[ifHighSpeed.{#SNMPINDEX}]
+        delay: '0'
+        history: 7d
+        preprocessing:
+        - type: SNMP_WALK_VALUE
+          parameters:
+          - 1.3.6.1.2.1.31.1.1.1.15.{#SNMPINDEX}
+          - '0'
+        - type: MULTIPLIER
+          parameters:
+          - '1000000'
+        - type: DISCARD_UNCHANGED_HEARTBEAT
+          parameters:
+          - 1h
+        master_item:
+          key: net.if.walk
+        tags:
+        - tag: component
+          value: network
+        - tag: interface
+          value: '{#IFNAME}'
+        trends: '0'
+        units: bps
+      - uuid: a5e4193cdbea4be49dfb464626f2f76b
+        name: 'Interface {#IFNAME}: Capacidade agregada RX'
+        type: SNMP_AGENT
+        snmp_oid: 1.3.6.1.4.1.2281.10.7.8.5.3.1.4.{#SNMPINDEX}
+        key: net.if.mc.capacity.rx[genEquipRadioGroupsAbcStatusCurrentAggregatedCapacityRX.{#SNMPINDEX}]
+        history: 7d
+        value_type: UNSIGNED
+        units: bps
+        description: Capacidade agregada RX atual do grupo Multi Carrier ABC. Valor
+          retornado em Kbps pelo equipamento, convertido para bps por multiplicador
+          1000.
+        preprocessing:
+        - type: MULTIPLIER
+          parameters:
+          - '1000'
+        - type: DISCARD_UNCHANGED_HEARTBEAT
+          parameters:
+          - 1h
+        tags:
+        - tag: component
+          value: network
+        - tag: interface
+          value: '{#IFNAME}'
+        - tag: metric
+          value: capacity
+        trigger_prototypes:
+        - uuid: 1dd64007210b4cb5a6d445ae6e625fd1
+          expression: last(/Template Ceragon IP-50C by SNMP/net.if.mc.capacity.rx[genEquipRadioGroupsAbcStatusCurrentAggregatedCapacityRX.{#SNMPINDEX}])<{$CERAGON.MC.CAPACITY.MIN}
+            or last(/Template Ceragon IP-50C by SNMP/net.if.mc.capacity.tx[genEquipRadioGroupsAbcStatusCurrentAggregatedCapacityTX.{#SNMPINDEX}])<{$CERAGON.MC.CAPACITY.MIN}
+          name: 'Interface {#IFNAME}: Capacidade agregada baixa'
+          opdata: 'RX: {ITEM.LASTVALUE1}'
+          priority: AVERAGE
+          description: Dispara quando a capacidade agregada RX ou TX do grupo Multi
+            Carrier fica abaixo do limiar definido em {$CERAGON.MC.CAPACITY.MIN}.
+          manual_close: 'YES'
+          tags:
+          - tag: scope
+            value: capacity
+      - uuid: 7ec114ef6d4e4b97b513477880a21704
+        name: 'Interface {#IFNAME}: Capacidade agregada TX'
+        type: SNMP_AGENT
+        snmp_oid: 1.3.6.1.4.1.2281.10.7.8.5.3.1.5.{#SNMPINDEX}
+        key: net.if.mc.capacity.tx[genEquipRadioGroupsAbcStatusCurrentAggregatedCapacityTX.{#SNMPINDEX}]
+        history: 7d
+        value_type: UNSIGNED
+        units: bps
+        description: Capacidade agregada TX atual do grupo Multi Carrier ABC. Valor
+          retornado em Kbps pelo equipamento, convertido para bps por multiplicador
+          1000.
+        preprocessing:
+        - type: MULTIPLIER
+          parameters:
+          - '1000'
+        - type: DISCARD_UNCHANGED_HEARTBEAT
+          parameters:
+          - 1h
+        tags:
+        - tag: component
+          value: network
+        - tag: interface
+          value: '{#IFNAME}'
+        - tag: metric
+          value: capacity
+      - uuid: a14f4efb72a34d8c831692aa5af1fd7d
+        name: 'Interface {#IFNAME}: Capacidade carrier 1'
+        type: SNMP_AGENT
+        snmp_oid: 1.3.6.1.4.1.2281.10.7.8.5.3.1.7.{#SNMPINDEX}
+        key: net.if.mc.capacity.c1[genEquipRadioGroupsAbcStatusCarrier1Capacity.{#SNMPINDEX}]
+        history: 7d
+        value_type: UNSIGNED
+        units: bps
+        description: Capacidade atual do carrier 1 do grupo Multi Carrier ABC. Valor
+          retornado em Kbps pelo equipamento, convertido para bps por multiplicador
+          1000.
+        preprocessing:
+        - type: MULTIPLIER
+          parameters:
+          - '1000'
+        - type: DISCARD_UNCHANGED_HEARTBEAT
+          parameters:
+          - 1h
+        tags:
+        - tag: component
+          value: network
+        - tag: interface
+          value: '{#IFNAME}'
+        - tag: metric
+          value: capacity
+        trigger_prototypes:
+        - uuid: b7ec9c6e40984bb29f6c81bffbcac560
+          expression: (last(/Template Ceragon IP-50C by SNMP/net.if.mc.capacity.c1[genEquipRadioGroupsAbcStatusCarrier1Capacity.{#SNMPINDEX}])-last(/Template
+            Ceragon IP-50C by SNMP/net.if.mc.capacity.c2[genEquipRadioGroupsAbcStatusCarrier2Capacity.{#SNMPINDEX}]))>{$CERAGON.MC.CARRIER.DIFF.MAX}
+            or (last(/Template Ceragon IP-50C by SNMP/net.if.mc.capacity.c2[genEquipRadioGroupsAbcStatusCarrier2Capacity.{#SNMPINDEX}])-last(/Template
+            Ceragon IP-50C by SNMP/net.if.mc.capacity.c1[genEquipRadioGroupsAbcStatusCarrier1Capacity.{#SNMPINDEX}]))>{$CERAGON.MC.CARRIER.DIFF.MAX}
+          name: 'Interface {#IFNAME}: Desequilíbrio entre carriers'
+          opdata: 'Carrier1: {ITEM.LASTVALUE1}'
+          priority: WARNING
+          description: Dispara quando a diferença entre a capacidade do carrier 1
+            e do carrier 2 ultrapassa {$CERAGON.MC.CARRIER.DIFF.MAX}.
+          manual_close: 'YES'
+          tags:
+          - tag: scope
+            value: capacity
+      - uuid: fc39a22a9e944908b59c389368e78a10
+        name: 'Interface {#IFNAME}: Capacidade carrier 2'
+        type: SNMP_AGENT
+        snmp_oid: 1.3.6.1.4.1.2281.10.7.8.5.3.1.9.{#SNMPINDEX}
+        key: net.if.mc.capacity.c2[genEquipRadioGroupsAbcStatusCarrier2Capacity.{#SNMPINDEX}]
+        history: 7d
+        value_type: UNSIGNED
+        units: bps
+        description: Capacidade atual do carrier 2 do grupo Multi Carrier ABC. Valor
+          retornado em Kbps pelo equipamento, convertido para bps por multiplicador
+          1000.
+        preprocessing:
+        - type: MULTIPLIER
+          parameters:
+          - '1000'
+        - type: DISCARD_UNCHANGED_HEARTBEAT
+          parameters:
+          - 1h
+        tags:
+        - tag: component
+          value: network
+        - tag: interface
+          value: '{#IFNAME}'
+        - tag: metric
+          value: capacity
+      trigger_prototypes: []
+      graph_prototypes:
+      - uuid: 1fe9b986ddd04ccb997b3a6d05a17bfb
+        name: 'Interface {#IFNAME}: Capacidade Multi Carrier'
+        graph_items:
+        - drawtype: GRADIENT_LINE
+          color: 199C0D
+          item:
+            host: Template Ceragon IP-50C by SNMP
+            key: net.if.mc.capacity.rx[genEquipRadioGroupsAbcStatusCurrentAggregatedCapacityRX.{#SNMPINDEX}]
+        - sortorder: '1'
+          drawtype: BOLD_LINE
+          color: F63100
+          item:
+            host: Template Ceragon IP-50C by SNMP
+            key: net.if.mc.capacity.tx[genEquipRadioGroupsAbcStatusCurrentAggregatedCapacityTX.{#SNMPINDEX}]
+        - sortorder: '2'
+          color: 2774A4
+          item:
+            host: Template Ceragon IP-50C by SNMP
+            key: net.if.mc.capacity.c1[genEquipRadioGroupsAbcStatusCarrier1Capacity.{#SNMPINDEX}]
+        - sortorder: '3'
+          color: A54F10
+          item:
+            host: Template Ceragon IP-50C by SNMP
+            key: net.if.mc.capacity.c2[genEquipRadioGroupsAbcStatusCarrier2Capacity.{#SNMPINDEX}]
+      master_item:
+        key: net.if.walk
+      preprocessing:
+      - type: SNMP_WALK_TO_JSON
+        parameters:
+        - '{#IFOPERSTATUS}'
+        - 1.3.6.1.2.1.2.2.1.8
+        - '0'
+        - '{#IFADMINSTATUS}'
+        - 1.3.6.1.2.1.2.2.1.7
+        - '0'
+        - '{#IFNAME}'
+        - 1.3.6.1.2.1.31.1.1.1.1
+        - '0'
+        - '{#IFDESCR}'
+        - 1.3.6.1.2.1.2.2.1.2
+        - '0'
+        - '{#IFTYPE}'
+        - 1.3.6.1.2.1.2.2.1.3
+        - '0'
+      - type: DISCARD_UNCHANGED_HEARTBEAT
+        parameters:
+        - 1h
+    - uuid: 4445ff950ef94850ad83444d7a046ad0
+      name: 'Ceragon: Descoberta de rádios'
+      type: DEPENDENT
+      key: net.if.radio.discovery
+      delay: '0'
+      filter:
+        evaltype: AND
+        conditions:
+        - macro: '{#IFADMINSTATUS}'
+          value: '{$NET.IF.IFADMINSTATUS.MATCHES}'
+          formulaid: A
+        - macro: '{#IFADMINSTATUS}'
+          value: '{$NET.IF.IFADMINSTATUS.NOT_MATCHES}'
+          operator: NOT_MATCHES_REGEX
+          formulaid: B
+        - macro: '{#IFDESCR}'
+          value: '{$NET.IF.IFDESCR.MATCHES}'
+          formulaid: C
+        - macro: '{#IFDESCR}'
+          value: '{$NET.IF.IFDESCR.NOT_MATCHES}'
+          operator: NOT_MATCHES_REGEX
+          formulaid: D
+        - macro: '{#IFNAME}'
+          value: '^Radio:'
+          formulaid: E
+        - macro: '{#IFNAME}'
+          value: ^$
+          operator: NOT_MATCHES_REGEX
+          formulaid: F
+        - macro: '{#IFOPERSTATUS}'
+          value: '{$NET.IF.IFOPERSTATUS.MATCHES}'
+          formulaid: G
+        - macro: '{#IFOPERSTATUS}'
+          value: '{$NET.IF.IFOPERSTATUS.NOT_MATCHES}'
+          operator: NOT_MATCHES_REGEX
+          formulaid: H
+        - macro: '{#IFTYPE}'
+          value: '{$NET.IF.IFTYPE.MATCHES}'
+          formulaid: I
+        - macro: '{#IFTYPE}'
+          value: '{$NET.IF.IFTYPE.NOT_MATCHES}'
+          operator: NOT_MATCHES_REGEX
+          formulaid: J
+      description: Descoberta específica das interfaces de rádio, com telemetria proprietária
+        confirmada para nível RX remoto e parâmetros de enlace do peer.
+      item_prototypes:
+      - uuid: 1b6ebc98c2c045bc85b7b1e829584159
+        name: 'Rádio {#IFNAME}: IP remoto'
+        type: SNMP_AGENT
+        snmp_oid: 1.3.6.1.4.1.2281.10.7.3.1.1.3.{#SNMPINDEX}
+        key: ceragon.radio.remote.ip[genEquipRemoteRadioRemoteIPAddr.{#SNMPINDEX}]
+        delay: 5m
+        history: 7d
+        trends: '0'
+        value_type: CHAR
+        description: IP do rádio remoto reportado pelo equipamento local.
+        preprocessing:
+        - type: DISCARD_UNCHANGED_HEARTBEAT
+          parameters:
+          - 1h
+        tags:
+        - tag: component
+          value: radio
+        - tag: interface
+          value: '{#IFNAME}'
+        - tag: metric
+          value: remote-ip
+      - uuid: eda0ed0fa61841169b9605b09ae4b7e6
+        name: 'Rádio {#IFNAME}: Nível RX remoto'
+        type: SNMP_AGENT
+        snmp_oid: 1.3.6.1.4.1.2281.10.7.3.1.1.4.{#SNMPINDEX}
+        key: ceragon.radio.remote.rx[genEquipRemoteRadioRemoteRxLevel.{#SNMPINDEX}]
+        delay: 2m
+        history: 90d
+        value_type: FLOAT
+        units: dBm
+        description: Nível RX informado para o rádio remoto na árvore proprietária
+          MWRM-RADIO-MIB.
+        tags:
+        - tag: component
+          value: radio
+        - tag: interface
+          value: '{#IFNAME}'
+        - tag: metric
+          value: signal
+        trigger_prototypes:
+        - uuid: 1c1a535d6c154653bb5256d16c1d85bd
+          expression: last(/Template Ceragon IP-50C by SNMP/ceragon.radio.remote.rx[genEquipRemoteRadioRemoteRxLevel.{#SNMPINDEX}])<{$CERAGON.RADIO.REMOTE.RX.WARN}
+          name: 'Rádio {#IFNAME}: Nível RX remoto baixo'
+          opdata: 'Valor atual: {ITEM.LASTVALUE1}'
+          priority: AVERAGE
+          description: Dispara quando o nível RX remoto fica abaixo do limiar configurado
+            na macro {$CERAGON.RADIO.REMOTE.RX.WARN}.
+          manual_close: 'YES'
+          tags:
+          - tag: scope
+            value: performance
+      - uuid: 591aa0f5b86d4fda8df37d7bb4f0e02a
+        name: 'Rádio {#IFNAME}: Potência TX máxima remota'
+        type: SNMP_AGENT
+        snmp_oid: 1.3.6.1.4.1.2281.10.7.3.1.1.5.{#SNMPINDEX}
+        key: ceragon.radio.remote.tx.max[genEquipRemoteRadioRemoteForceMaxTxLevel.{#SNMPINDEX}]
+        delay: 5m
+        history: 30d
+        value_type: FLOAT
+        units: dBm
+        description: Potência TX máxima configurada/forçada do rádio remoto.
+        preprocessing:
+        - type: DISCARD_UNCHANGED_HEARTBEAT
+          parameters:
+          - 1h
+        tags:
+        - tag: component
+          value: radio
+        - tag: interface
+          value: '{#IFNAME}'
+        - tag: metric
+          value: tx
+      - uuid: 2f2f3dd8b3bc421797fc256459928df8
+        name: 'Rádio {#IFNAME}: Frequência TX remota'
+        type: SNMP_AGENT
+        snmp_oid: 1.3.6.1.4.1.2281.10.7.3.1.1.6.{#SNMPINDEX}
+        key: ceragon.radio.remote.tx.freq[genEquipRemoteRadioRemoteTxFreq.{#SNMPINDEX}]
+        delay: 1h
+        history: 30d
+        value_type: UNSIGNED
+        units: kHz
+        preprocessing:
+        - type: DISCARD_UNCHANGED_HEARTBEAT
+          parameters:
+          - 1d
+        tags:
+        - tag: component
+          value: radio
+        - tag: interface
+          value: '{#IFNAME}'
+        - tag: metric
+          value: frequency
+      - uuid: aa8c995573b945cd967018616e390b3f
+        name: 'Rádio {#IFNAME}: Frequência RX remota'
+        type: SNMP_AGENT
+        snmp_oid: 1.3.6.1.4.1.2281.10.7.3.1.1.7.{#SNMPINDEX}
+        key: ceragon.radio.remote.rx.freq[genEquipRemoteRadioRemoteRxFreq.{#SNMPINDEX}]
+        delay: 1h
+        history: 30d
+        value_type: UNSIGNED
+        units: kHz
+        preprocessing:
+        - type: DISCARD_UNCHANGED_HEARTBEAT
+          parameters:
+          - 1d
+        tags:
+        - tag: component
+          value: radio
+        - tag: interface
+          value: '{#IFNAME}'
+        - tag: metric
+          value: frequency
+      - uuid: d633dad63ce5498db44eeeb0c6863753
+        name: 'Rádio {#IFNAME}: Nível RX remoto de referência'
+        type: SNMP_AGENT
+        snmp_oid: 1.3.6.1.4.1.2281.10.7.3.1.1.8.{#SNMPINDEX}
+        key: ceragon.radio.remote.rx.reference[genEquipRemoteRadioRemoteATPCReferenceRxLevel.{#SNMPINDEX}]
+        delay: 5m
+        history: 30d
+        value_type: FLOAT
+        units: dBm
+        description: Nível RX de referência do rádio remoto (ATPC/reference level),
+          útil para comparação com o RX atual.
+        preprocessing:
+        - type: DISCARD_UNCHANGED_HEARTBEAT
+          parameters:
+          - 1h
+        tags:
+        - tag: component
+          value: radio
+        - tag: interface
+          value: '{#IFNAME}'
+        - tag: metric
+          value: signal-reference
+      - uuid: 2dc9fd984f8540cc8b54a8c4472cd746
+        name: 'Rádio {#IFNAME}: Nível RX local'
+        type: SNMP_AGENT
+        snmp_oid: 1.3.6.1.4.1.2281.10.5.1.1.2.{#SNMPINDEX}
+        key: ceragon.radio.local.rx[genEquipRfuStatusRxLevel.{#SNMPINDEX}]
+        delay: 2m
+        history: 90d
+        value_type: FLOAT
+        units: dBm
+        description: Nível RX local da RFU confirmado na árvore proprietária MWRM-RADIO-MIB.
+        tags:
+        - tag: component
+          value: radio
+        - tag: interface
+          value: '{#IFNAME}'
+        - tag: metric
+          value: signal-local
+        trigger_prototypes:
+        - uuid: ee322eaca53545908ff56fd4619a5e61
+          expression: last(/Template Ceragon IP-50C by SNMP/ceragon.radio.local.rx[genEquipRfuStatusRxLevel.{#SNMPINDEX}])<{$CERAGON.RADIO.LOCAL.RX.WARN}
+          name: 'Rádio {#IFNAME}: Nível RX local baixo'
+          opdata: 'Valor atual: {ITEM.LASTVALUE1}'
+          priority: AVERAGE
+          description: Dispara quando o nível RX local da RFU fica abaixo do limiar
+            configurado na macro {$CERAGON.RADIO.LOCAL.RX.WARN}.
+          manual_close: 'YES'
+          tags:
+          - tag: scope
+            value: performance
+      - uuid: 8de152d2195e437ead0a0416617ef3da
+        name: 'Rádio {#IFNAME}: Potência TX local'
+        type: SNMP_AGENT
+        snmp_oid: 1.3.6.1.4.1.2281.10.5.1.1.3.{#SNMPINDEX}
+        key: ceragon.radio.local.tx[genEquipRfuStatusTxLevel.{#SNMPINDEX}]
+        delay: 5m
+        history: 30d
+        value_type: FLOAT
+        units: dBm
+        description: Potência TX local da RFU confirmada na árvore proprietária MWRM-RADIO-MIB.
+        preprocessing:
+        - type: DISCARD_UNCHANGED_HEARTBEAT
+          parameters:
+          - 1h
+        tags:
+        - tag: component
+          value: radio
+        - tag: interface
+          value: '{#IFNAME}'
+        - tag: metric
+          value: tx-local
+        trigger_prototypes:
+        - uuid: 139d959068944144a6e64f94f10981d7
+          expression: last(/Template Ceragon IP-50C by SNMP/ceragon.radio.local.tx[genEquipRfuStatusTxLevel.{#SNMPINDEX}])<{$CERAGON.RADIO.LOCAL.TX.MIN}
+            or last(/Template Ceragon IP-50C by SNMP/ceragon.radio.local.tx[genEquipRfuStatusTxLevel.{#SNMPINDEX}])>{$CERAGON.RADIO.LOCAL.TX.MAX}
+          name: 'Rádio {#IFNAME}: Potência TX local fora da faixa'
+          opdata: 'Valor atual: {ITEM.LASTVALUE1}'
+          priority: WARNING
+          description: Dispara quando a potência TX local da RFU fica fora da faixa
+            definida pelas macros {$CERAGON.RADIO.LOCAL.TX.MIN} e {$CERAGON.RADIO.LOCAL.TX.MAX}.
+          manual_close: 'YES'
+          tags:
+          - tag: scope
+            value: performance
+      - uuid: 1b8d21ab8d074f63aacb1d46d979f382
+        name: 'Rádio {#IFNAME}: MSE local'
+        type: SNMP_AGENT
+        snmp_oid: 1.3.6.1.4.1.2281.10.7.1.1.2.{#SNMPINDEX}
+        key: ceragon.radio.local.mse[genEquipRadioStatusMSE.{#SNMPINDEX}]
+        delay: 5m
+        history: 30d
+        value_type: FLOAT
+        units: dB
+        description: Mean Square Error (MSE) local do rádio. O valor SNMP é exposto
+          em dB x 100 e é convertido para dB no pré-processamento.
+        preprocessing:
+        - type: MULTIPLIER
+          parameters:
+          - '0.01'
+        tags:
+        - tag: component
+          value: radio
+        - tag: interface
+          value: '{#IFNAME}'
+        - tag: metric
+          value: quality
+        trigger_prototypes:
+        - uuid: a8adaf8a8c3d47ee99b76e1f97f719a4
+          expression: last(/Template Ceragon IP-50C by SNMP/ceragon.radio.local.mse[genEquipRadioStatusMSE.{#SNMPINDEX}])<{$CERAGON.RADIO.MSE.WARN}
+          name: 'Rádio {#IFNAME}: MSE local degradado'
+          opdata: 'Valor atual: {ITEM.LASTVALUE1}'
+          priority: AVERAGE
+          description: Dispara quando o MSE local do rádio fica abaixo do limiar configurado
+            na macro {$CERAGON.RADIO.MSE.WARN}. Valores mais negativos indicam pior
+            qualidade.
+          manual_close: 'YES'
+          tags:
+          - tag: scope
+            value: quality
+      trigger_prototypes: []
+      graph_prototypes:
+      - uuid: b4b41f7deeb54312827a3fa047bb8715
+        name: 'Rádio {#IFNAME}: Níveis de sinal'
+        graph_items:
+        - drawtype: BOLD_LINE
+          color: 2774A4
+          item:
+            host: Template Ceragon IP-50C by SNMP
+            key: ceragon.radio.local.rx[genEquipRfuStatusRxLevel.{#SNMPINDEX}]
+        - drawtype: BOLD_LINE
+          color: 199C0D
+          item:
+            host: Template Ceragon IP-50C by SNMP
+            key: ceragon.radio.remote.rx[genEquipRemoteRadioRemoteRxLevel.{#SNMPINDEX}]
+          sortorder: '1'
+        - sortorder: '1'
+          color: F63100
+          item:
+            host: Template Ceragon IP-50C by SNMP
+            key: ceragon.radio.remote.rx.reference[genEquipRemoteRadioRemoteATPCReferenceRxLevel.{#SNMPINDEX}]
+      - uuid: b61e26397f0640919aa951f60101fe58
+        name: 'Rádio {#IFNAME}: Qualidade local'
+        graph_items:
+        - drawtype: BOLD_LINE
+          color: 6C59DC
+          item:
+            host: Template Ceragon IP-50C by SNMP
+            key: ceragon.radio.local.mse[genEquipRadioStatusMSE.{#SNMPINDEX}]
+        - sortorder: '1'
+          color: F63100
+          item:
+            host: Template Ceragon IP-50C by SNMP
+            key: ceragon.radio.local.tx[genEquipRfuStatusTxLevel.{#SNMPINDEX}]
+      master_item:
+        key: net.if.walk
+      preprocessing:
+      - type: SNMP_WALK_TO_JSON
+        parameters:
+        - '{#IFOPERSTATUS}'
+        - 1.3.6.1.2.1.2.2.1.8
+        - '0'
+        - '{#IFADMINSTATUS}'
+        - 1.3.6.1.2.1.2.2.1.7
+        - '0'
+        - '{#IFNAME}'
+        - 1.3.6.1.2.1.31.1.1.1.1
+        - '0'
+        - '{#IFDESCR}'
+        - 1.3.6.1.2.1.2.2.1.2
+        - '0'
+        - '{#IFTYPE}'
+        - 1.3.6.1.2.1.2.2.1.3
+        - '0'
+      - type: DISCARD_UNCHANGED_HEARTBEAT
+        parameters:
+        - 1h
