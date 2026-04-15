@@ -84,7 +84,7 @@ A solução foi ajustada em ambiente real a partir de `snmpwalk` da própria OLT
 ## Arquivos finais do projeto
 
 ### Template final
-- `template_intelbras_g16_zabbix7_final.yaml`
+- `template_intelbras_g16_dynamic_zabbix7_fix17_dashboard_panels_fix_import.yaml`
 
 ### Scripts finais
 - `intelbras_g16_lld_v2.py` → discovery dinâmica de PON, uplink, SFP e ONU
