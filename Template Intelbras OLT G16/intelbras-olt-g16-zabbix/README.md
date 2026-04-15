@@ -1,8 +1,5 @@
 # Intelbras G16 by SNMP para Zabbix 7
 
-
-> **Importante:** antes de publicar no GitHub, mantenha IPs, communities SNMP e demais credenciais apenas como placeholders, nunca como valores reais.
-
 Template avançado para monitoramento da **OLT Intelbras G16** no **Zabbix 7**, com descoberta automática, itens dinâmicos, alertas operacionais e dashboards.
 
 ## Visão geral
