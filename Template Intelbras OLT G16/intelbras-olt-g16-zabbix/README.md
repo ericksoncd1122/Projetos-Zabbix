@@ -1,3 +1,6 @@
+<img width="439" height="115" alt="zabbix" src="https://github.com/user-attachments/assets/89148e3e-e19a-4afb-a90b-d28e316cd932" />
+<img width="394" height="128" alt="intelbras" src="https://github.com/user-attachments/assets/08506bb1-3c42-425d-a311-8aaf3080321d" />
+
 # Intelbras G16 by SNMP para Zabbix 7
 
 Template avançado para monitoramento da **OLT Intelbras G16** no **Zabbix 7**, com descoberta automática, itens dinâmicos, alertas operacionais e dashboards.
