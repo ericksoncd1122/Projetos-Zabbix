@@ -1,0 +1,2186 @@
+zabbix_export:
+  version: '7.0'
+  template_groups:
+  - uuid: 45de7777a66842d9932c58971a2a0a26
+    name: Templates/Intelbras
+  templates:
+  - uuid: a11baa4635c64f989f4fbc12a9eed921
+    template: Intelbras_G16_SNMP_ScriptV2
+    name: Intelbras G16 by SNMP (Script LLD v2)
+    description: 'Template dinâmico para OLT Intelbras G16 via SNMP, voltado para
+      reaproveitamento em múltiplas OLTs do mesmo modelo.
+
+
+      Cobertura desta versão:
+
+      - Sistema: CPU, memória, temperaturas, uptime, sysName e ICMP.
+
+      - Descoberta dinâmica (LLD) das 16 portas PON a partir do IF-MIB.
+
+      - Descoberta dinâmica das portas Ethernet de uplink (e1/* e e2/*) a partir do
+      IF-MIB.
+
+      - Descoberta dinâmica dos SFPs presentes a partir da MIB privada Intelbras.
+
+      - Descoberta dinâmica das ONUs a partir da tabela básica da MIB privada Intelbras.
+
+      - Coleta de tráfego/utilização/pps das portas PON pela MIB privada.
+
+      - Coleta de metadados e telemetria principal dos SFPs.
+
+      - Coleta de informações básicas e versão das ONUs.
+
+      - Itens brutos para óptico e Ethernet de ONU mantidos para futura expansão quando
+      o firmware responder essas tabelas de forma consistente.
+
+
+      Observações:
+
+      - O ramo de descoberta .1.3.6.1.4.1.13464.1.14.2.3.1.1 retornou "No Such Object"
+      no firmware analisado; por isso a descoberta de ONUs usa parsing da tabela básica.
+
+      - Os ramos óptico/Ethernet de ONU ficaram vazios no walk validado; por segurança,
+      esta versão não cria itens por-ONU desses ramos para evitar itens não suportados
+      em massa.
+
+      '
+    vendor:
+      name: OpenAI
+      version: 7.0-script-v2
+    groups:
+    - name: Templates/Intelbras
+    macros:
+    - macro: '{$SNMP.TIMEOUT}'
+      value: 20s
+    - macro: '{$CPU.WARN}'
+      value: '85'
+    - macro: '{$CPU.CRIT}'
+      value: '95'
+    - macro: '{$MEM.WARN}'
+      value: '90'
+    - macro: '{$TEMP.SWITCH.WARN}'
+      value: '75'
+    - macro: '{$TEMP.GPON.WARN}'
+      value: '75'
+    - macro: '{$PON.UTIL.WARN}'
+      value: '80'
+    - macro: '{$SFP.TEMP.WARN}'
+      value: '70'
+    - macro: '{$SFP.RX.MIN}'
+      value: '-28'
+    - macro: '{$UPLINK.IFNAME.MATCHES}'
+      value: ^e[12]/
+    - macro: '{$PON.ONU.DOWN.MINUTES}'
+      value: 5m
+    - macro: '{$UPLINK.TRAFFIC.WARN}'
+      value: '800000000'
+    - macro: '{$SNMP_COMMUNITY}'
+      value: WNET-TELECOM
+    items:
+    - uuid: 99fe133bdb9644aaae1ee5a6cb3d31e0
+      name: CPU utilization
+      type: SNMP_AGENT
+      key: intelbras.g16.cpu
+      delay: 2m
+      history: 90d
+      trends: 365d
+      snmp_oid: .1.3.6.1.4.1.13464.1.14.2.1.3.1.0
+      units: '%'
+      tags:
+      - tag: component
+        value: system
+    - uuid: 81898c4c53b14f86be05ac74cb2d4104
+      name: Memory utilization
+      type: SNMP_AGENT
+      key: intelbras.g16.mem
+      delay: 2m
+      history: 90d
+      trends: 365d
+      snmp_oid: .1.3.6.1.4.1.13464.1.14.2.1.3.2.0
+      units: '%'
+      tags:
+      - tag: component
+        value: system
+    - uuid: d80b436b46b542e8ae96e1e02cf72534
+      name: Switch chipset temperature
+      type: SNMP_AGENT
+      key: intelbras.g16.temp.switch
+      delay: 2m
+      history: 90d
+      trends: 365d
+      snmp_oid: .1.3.6.1.4.1.13464.1.14.2.1.3.3.0
+      units: C
+      tags:
+      - tag: component
+        value: system
+    - uuid: f9fbdb082e6f4d84b4b637c9d046ed28
+      name: GPON chipset temperature
+      type: SNMP_AGENT
+      key: intelbras.g16.temp.gpon
+      delay: 2m
+      history: 90d
+      trends: 365d
+      snmp_oid: .1.3.6.1.4.1.13464.1.14.2.1.3.4.0
+      units: C
+      tags:
+      - tag: component
+        value: system
+    - uuid: 52fc7108437341419466b0d8bc15d6ee
+      name: ONT image name
+      type: SNMP_AGENT
+      key: intelbras.g16.ont.image.name
+      delay: 1h
+      history: 7d
+      trends: '0'
+      value_type: CHAR
+      snmp_oid: .1.3.6.1.4.1.13464.1.14.2.1.3.5.0
+      tags:
+      - tag: component
+        value: system
+    - uuid: 62b3489aba724b8194d4ee56803af236
+      name: ONT image size
+      type: SNMP_AGENT
+      key: intelbras.g16.ont.image.size
+      delay: 1h
+      history: 90d
+      trends: 365d
+      units: B
+      snmp_oid: .1.3.6.1.4.1.13464.1.14.2.1.3.6.0
+      tags:
+      - tag: component
+        value: system
+    - uuid: 708ba9a3423a43799f54feaeb2703fa4
+      name: System name
+      type: SNMP_AGENT
+      key: system.hostname
+      delay: 1h
+      history: 7d
+      trends: '0'
+      value_type: CHAR
+      snmp_oid: .1.3.6.1.2.1.1.5.0
+      tags:
+      - tag: component
+        value: inventory
+    - uuid: 312af08479b8457180aecbf1d794bca7
+      name: System uptime
+      type: SNMP_AGENT
+      key: system.uptime
+      delay: 5m
+      units: uptime
+      snmp_oid: .1.3.6.1.2.1.1.3.0
+      tags:
+      - tag: component
+        value: system
+      preprocessing:
+      - type: MULTIPLIER
+        parameters:
+        - '0.01'
+      description: sysUpTime SNMP vem em centésimos de segundo; convertido para segundos.
+    - uuid: 30e5e2ee20c84885bc5f3e1df13de0b2
+      name: Ping
+      type: SIMPLE
+      key: icmpping
+      delay: 1m
+      valuemap:
+        name: Service state
+      tags:
+      - tag: component
+        value: network
+    - uuid: e850e0f39b8c4cb6b3e8decba383e1b2
+      name: IF descriptions raw
+      type: SNMP_AGENT
+      key: intelbras.g16.if.descr.raw
+      delay: 15m
+      history: 7d
+      trends: '0'
+      value_type: TEXT
+      snmp_oid: walk[.1.3.6.1.2.1.2.2.1.2]
+      timeout: '{$SNMP.TIMEOUT}'
+      tags:
+      - tag: component
+        value: raw
+      - tag: scope
+        value: ifdescr
+    - uuid: 25bf53fe8b6c460c8af9f87d94a08de1
+      name: IF operational status raw
+      type: SNMP_AGENT
+      key: intelbras.g16.if.oper.raw
+      delay: 5m
+      history: 7d
+      trends: '0'
+      value_type: TEXT
+      snmp_oid: walk[.1.3.6.1.2.1.2.2.1.8]
+      timeout: '{$SNMP.TIMEOUT}'
+      tags:
+      - tag: component
+        value: raw
+      - tag: scope
+        value: ifoper
+    - uuid: 5bb99f8ff98e4652b2549dce78b49dc2
+      name: PON traffic raw
+      type: SNMP_AGENT
+      key: intelbras.g16.pon.raw
+      delay: 5m
+      history: 7d
+      trends: '0'
+      value_type: TEXT
+      snmp_oid: walk[.1.3.6.1.4.1.13464.1.14.2.3.5.1]
+      timeout: '{$SNMP.TIMEOUT}'
+      tags:
+      - tag: component
+        value: raw
+      - tag: scope
+        value: pon
+    - uuid: 953737e18d974e56add2ad9714fe9520
+      name: SFP raw
+      type: SNMP_AGENT
+      key: intelbras.g16.sfp.raw
+      delay: 10m
+      history: 7d
+      trends: '0'
+      value_type: TEXT
+      snmp_oid: walk[.1.3.6.1.4.1.13464.1.14.2.3.3.1]
+      timeout: '{$SNMP.TIMEOUT}'
+      tags:
+      - tag: component
+        value: raw
+      - tag: scope
+        value: sfp
+    - uuid: 11edcb6dbe364593bfbd9a4810014ac1
+      name: ONU basic raw
+      type: SNMP_AGENT
+      key: intelbras.g16.onu.basic.raw
+      delay: 10m
+      history: 7d
+      trends: '0'
+      value_type: TEXT
+      snmp_oid: walk[.1.3.6.1.4.1.13464.1.14.2.4.1.1.1]
+      timeout: '{$SNMP.TIMEOUT}'
+      tags:
+      - tag: component
+        value: raw
+      - tag: scope
+        value: onu.basic
+    - uuid: 20ac0b4481f4458fbe4e32a8f6b8b577
+      name: ONU status raw
+      type: SNMP_AGENT
+      key: intelbras.g16.onu.status.raw
+      delay: 10m
+      history: 7d
+      trends: '0'
+      value_type: TEXT
+      snmp_oid: walk[.1.3.6.1.4.1.13464.1.14.2.4.1.1.1.6]
+      timeout: '{$SNMP.TIMEOUT}'
+      tags:
+      - tag: component
+        value: raw
+      - tag: scope
+        value: onu.status
+    - uuid: 25e30c8ae12048cfa042ad63d94a2627
+      name: ONU version raw
+      type: SNMP_AGENT
+      key: intelbras.g16.onu.version.raw
+      delay: 30m
+      history: 7d
+      trends: '0'
+      value_type: TEXT
+      snmp_oid: walk[.1.3.6.1.4.1.13464.1.14.2.4.1.2.1]
+      timeout: '{$SNMP.TIMEOUT}'
+      tags:
+      - tag: component
+        value: raw
+      - tag: scope
+        value: onu.version
+    - uuid: 48435ea821954b66aa6ed43ad332f6b3
+      name: ONU optical raw
+      type: SNMP_AGENT
+      key: intelbras.g16.onu.optical.raw
+      delay: 30m
+      history: 7d
+      trends: '0'
+      value_type: TEXT
+      snmp_oid: walk[.1.3.6.1.4.1.13464.1.14.2.4.1.9.1]
+      timeout: '{$SNMP.TIMEOUT}'
+      tags:
+      - tag: component
+        value: raw
+      - tag: scope
+        value: onu.optical
+    - uuid: a45930cda66141a9af18146ba09fa1b2
+      name: ONU ethernet raw
+      type: SNMP_AGENT
+      key: intelbras.g16.onu.eth.raw
+      delay: 30m
+      history: 7d
+      trends: '0'
+      value_type: TEXT
+      snmp_oid: walk[.1.3.6.1.4.1.13464.1.14.2.4.2.1.1]
+      timeout: '{$SNMP.TIMEOUT}'
+      tags:
+      - tag: component
+        value: raw
+      - tag: scope
+        value: onu.eth
+    - uuid: e0aa426736174c38856ebfecc5bce703
+      name: ONU count total
+      type: DEPENDENT
+      key: intelbras.g16.onu.total
+      delay: '0'
+      master_item:
+        key: intelbras.g16.onu.status.raw
+      preprocessing:
+      - type: JAVASCRIPT
+        parameters:
+        - "var lines = value.split(/\\n+/).filter(Boolean);\nvar count = 0;\nfor (var\
+          \ i = 0; i < lines.length; i++) {\n  if (lines[i].indexOf('INTEGER:') !==\
+          \ -1) count++;\n}\nreturn count;\n"
+      tags:
+      - tag: component
+        value: onu
+    - uuid: ca3dd10504984effb3635af0b19d65eb
+      name: ONU count online
+      type: DEPENDENT
+      key: intelbras.g16.onu.online
+      delay: '0'
+      master_item:
+        key: intelbras.g16.onu.status.raw
+      preprocessing:
+      - type: JAVASCRIPT
+        parameters:
+        - "var lines = value.split(/\\n+/).filter(Boolean);\nvar count = 0;\nfor (var\
+          \ i = 0; i < lines.length; i++) {\n  if (/=\\s*INTEGER:\\s*1\\s*$/.test(lines[i]))\
+          \ count++;\n}\nreturn count;\n"
+      tags:
+      - tag: component
+        value: onu
+    - uuid: da4601dc0b20466899878fd1e81e4791
+      name: ONU count offline
+      type: DEPENDENT
+      key: intelbras.g16.onu.offline
+      delay: '0'
+      master_item:
+        key: intelbras.g16.onu.status.raw
+      preprocessing:
+      - type: JAVASCRIPT
+        parameters:
+        - "var lines = value.split(/\\n+/).filter(Boolean);\nvar count = 0;\nfor (var\
+          \ i = 0; i < lines.length; i++) {\n  if (/=\\s*INTEGER:\\s*0\\s*$/.test(lines[i]))\
+          \ count++;\n}\nreturn count;\n"
+      tags:
+      - tag: component
+        value: onu
+    - uuid: d5f75d3cd18d4969ab452875b6e7b3b9
+      name: IF in octets raw
+      type: SNMP_AGENT
+      key: intelbras.g16.if.in.raw
+      delay: 5m
+      history: 7d
+      trends: '0'
+      value_type: TEXT
+      snmp_oid: walk[.1.3.6.1.2.1.2.2.1.10]
+      timeout: '{$SNMP.TIMEOUT}'
+      tags:
+      - tag: component
+        value: raw
+      - tag: scope
+        value: ifin
+    - uuid: 108955bd4c36413a94045d54cd860298
+      name: IF out octets raw
+      type: SNMP_AGENT
+      key: intelbras.g16.if.out.raw
+      delay: 5m
+      history: 7d
+      trends: '0'
+      value_type: TEXT
+      snmp_oid: walk[.1.3.6.1.2.1.2.2.1.16]
+      timeout: '{$SNMP.TIMEOUT}'
+      tags:
+      - tag: component
+        value: raw
+      - tag: scope
+        value: ifout
+    - uuid: fbbc84fd955f47b18fc12a8e7777a470
+      name: IF speed raw
+      type: SNMP_AGENT
+      key: intelbras.g16.if.speed.raw
+      delay: 1h
+      history: 7d
+      trends: '0'
+      value_type: TEXT
+      snmp_oid: walk[.1.3.6.1.2.1.2.2.1.5]
+      timeout: '{$SNMP.TIMEOUT}'
+      tags:
+      - tag: component
+        value: raw
+      - tag: scope
+        value: ifspeed
+    - uuid: 43c54fdc87a54b79acbcaff1aba2ff38
+      name: 'Painel: PON g0/1: ONUs online'
+      type: EXTERNAL
+      key: 'intelbras_g16_panel_v1.py[pon_online,{HOST.CONN},{$SNMP_COMMUNITY},1]'
+      delay: 10m
+      history: 30d
+      trends: 365d
+      tags:
+      - tag: component
+        value: dashboard
+      - tag: pon
+        value: '1'
+    - uuid: be4d9ab962d047b6803723fba0748f87
+      name: 'Painel: PON g0/1: RX médio das ONUs online'
+      type: EXTERNAL
+      key: 'intelbras_g16_panel_v1.py[pon_rx_avg,{HOST.CONN},{$SNMP_COMMUNITY},1]'
+      delay: 10m
+      history: 30d
+      trends: 365d
+      value_type: FLOAT
+      units: dBm
+      tags:
+      - tag: component
+        value: dashboard
+      - tag: pon
+        value: '1'
+    - uuid: 75d9c79d0b394f75960c490d535cc874
+      name: 'Painel: PON g0/2: ONUs online'
+      type: EXTERNAL
+      key: 'intelbras_g16_panel_v1.py[pon_online,{HOST.CONN},{$SNMP_COMMUNITY},2]'
+      delay: 10m
+      history: 30d
+      trends: 365d
+      tags:
+      - tag: component
+        value: dashboard
+      - tag: pon
+        value: '2'
+    - uuid: d1d65d5283ac4e9eb7072be1979b5428
+      name: 'Painel: PON g0/2: RX médio das ONUs online'
+      type: EXTERNAL
+      key: 'intelbras_g16_panel_v1.py[pon_rx_avg,{HOST.CONN},{$SNMP_COMMUNITY},2]'
+      delay: 10m
+      history: 30d
+      trends: 365d
+      value_type: FLOAT
+      units: dBm
+      tags:
+      - tag: component
+        value: dashboard
+      - tag: pon
+        value: '2'
+    - uuid: faba5fd9aa0140dda2ea58953fa3aa95
+      name: 'Painel: PON g0/3: ONUs online'
+      type: EXTERNAL
+      key: 'intelbras_g16_panel_v1.py[pon_online,{HOST.CONN},{$SNMP_COMMUNITY},3]'
+      delay: 10m
+      history: 30d
+      trends: 365d
+      tags:
+      - tag: component
+        value: dashboard
+      - tag: pon
+        value: '3'
+    - uuid: 4e20df75a4964f79be9ff213dd0ae51d
+      name: 'Painel: PON g0/3: RX médio das ONUs online'
+      type: EXTERNAL
+      key: 'intelbras_g16_panel_v1.py[pon_rx_avg,{HOST.CONN},{$SNMP_COMMUNITY},3]'
+      delay: 10m
+      history: 30d
+      trends: 365d
+      value_type: FLOAT
+      units: dBm
+      tags:
+      - tag: component
+        value: dashboard
+      - tag: pon
+        value: '3'
+    - uuid: 2d0df4a103384f239cbab818892bda8f
+      name: 'Painel: PON g0/4: ONUs online'
+      type: EXTERNAL
+      key: 'intelbras_g16_panel_v1.py[pon_online,{HOST.CONN},{$SNMP_COMMUNITY},4]'
+      delay: 10m
+      history: 30d
+      trends: 365d
+      tags:
+      - tag: component
+        value: dashboard
+      - tag: pon
+        value: '4'
+    - uuid: b74be5ca00744403911020a1a86e249c
+      name: 'Painel: PON g0/4: RX médio das ONUs online'
+      type: EXTERNAL
+      key: 'intelbras_g16_panel_v1.py[pon_rx_avg,{HOST.CONN},{$SNMP_COMMUNITY},4]'
+      delay: 10m
+      history: 30d
+      trends: 365d
+      value_type: FLOAT
+      units: dBm
+      tags:
+      - tag: component
+        value: dashboard
+      - tag: pon
+        value: '4'
+    - uuid: 5224ff52f8624b43ab6a659c5c62d91a
+      name: 'Painel: PON g0/5: ONUs online'
+      type: EXTERNAL
+      key: 'intelbras_g16_panel_v1.py[pon_online,{HOST.CONN},{$SNMP_COMMUNITY},5]'
+      delay: 10m
+      history: 30d
+      trends: 365d
+      tags:
+      - tag: component
+        value: dashboard
+      - tag: pon
+        value: '5'
+    - uuid: 9ecbf7fdf27540508663e5ce09cd87b1
+      name: 'Painel: PON g0/5: RX médio das ONUs online'
+      type: EXTERNAL
+      key: 'intelbras_g16_panel_v1.py[pon_rx_avg,{HOST.CONN},{$SNMP_COMMUNITY},5]'
+      delay: 10m
+      history: 30d
+      trends: 365d
+      value_type: FLOAT
+      units: dBm
+      tags:
+      - tag: component
+        value: dashboard
+      - tag: pon
+        value: '5'
+    - uuid: 36c6e0bd955d4b31876a4a7d126bc6f3
+      name: 'Painel: PON g0/6: ONUs online'
+      type: EXTERNAL
+      key: 'intelbras_g16_panel_v1.py[pon_online,{HOST.CONN},{$SNMP_COMMUNITY},6]'
+      delay: 10m
+      history: 30d
+      trends: 365d
+      tags:
+      - tag: component
+        value: dashboard
+      - tag: pon
+        value: '6'
+    - uuid: 0daa3e6d392c4575b103243621daab42
+      name: 'Painel: PON g0/6: RX médio das ONUs online'
+      type: EXTERNAL
+      key: 'intelbras_g16_panel_v1.py[pon_rx_avg,{HOST.CONN},{$SNMP_COMMUNITY},6]'
+      delay: 10m
+      history: 30d
+      trends: 365d
+      value_type: FLOAT
+      units: dBm
+      tags:
+      - tag: component
+        value: dashboard
+      - tag: pon
+        value: '6'
+    - uuid: a154b05f70ef494fb4b4c775afa06616
+      name: 'Painel: PON g0/7: ONUs online'
+      type: EXTERNAL
+      key: 'intelbras_g16_panel_v1.py[pon_online,{HOST.CONN},{$SNMP_COMMUNITY},7]'
+      delay: 10m
+      history: 30d
+      trends: 365d
+      tags:
+      - tag: component
+        value: dashboard
+      - tag: pon
+        value: '7'
+    - uuid: f41c06b9897b439d8f7a6a0e44c93eba
+      name: 'Painel: PON g0/7: RX médio das ONUs online'
+      type: EXTERNAL
+      key: 'intelbras_g16_panel_v1.py[pon_rx_avg,{HOST.CONN},{$SNMP_COMMUNITY},7]'
+      delay: 10m
+      history: 30d
+      trends: 365d
+      value_type: FLOAT
+      units: dBm
+      tags:
+      - tag: component
+        value: dashboard
+      - tag: pon
+        value: '7'
+    - uuid: 048cf665da9d453db8f9853edc672807
+      name: 'Painel: PON g0/8: ONUs online'
+      type: EXTERNAL
+      key: 'intelbras_g16_panel_v1.py[pon_online,{HOST.CONN},{$SNMP_COMMUNITY},8]'
+      delay: 10m
+      history: 30d
+      trends: 365d
+      tags:
+      - tag: component
+        value: dashboard
+      - tag: pon
+        value: '8'
+    - uuid: 25be4528227548728b4b943c992b0513
+      name: 'Painel: PON g0/8: RX médio das ONUs online'
+      type: EXTERNAL
+      key: 'intelbras_g16_panel_v1.py[pon_rx_avg,{HOST.CONN},{$SNMP_COMMUNITY},8]'
+      delay: 10m
+      history: 30d
+      trends: 365d
+      value_type: FLOAT
+      units: dBm
+      tags:
+      - tag: component
+        value: dashboard
+      - tag: pon
+        value: '8'
+    - uuid: b5fd7c4897fa4ea48d04c4ca52ab9cab
+      name: 'Painel: PON g0/9: ONUs online'
+      type: EXTERNAL
+      key: 'intelbras_g16_panel_v1.py[pon_online,{HOST.CONN},{$SNMP_COMMUNITY},9]'
+      delay: 10m
+      history: 30d
+      trends: 365d
+      tags:
+      - tag: component
+        value: dashboard
+      - tag: pon
+        value: '9'
+    - uuid: 6ec946471c3d46e2960141040b4da2fb
+      name: 'Painel: PON g0/9: RX médio das ONUs online'
+      type: EXTERNAL
+      key: 'intelbras_g16_panel_v1.py[pon_rx_avg,{HOST.CONN},{$SNMP_COMMUNITY},9]'
+      delay: 10m
+      history: 30d
+      trends: 365d
+      value_type: FLOAT
+      units: dBm
+      tags:
+      - tag: component
+        value: dashboard
+      - tag: pon
+        value: '9'
+    - uuid: 5efdf5a739ae480a91de539c23844204
+      name: 'Painel: PON g0/10: ONUs online'
+      type: EXTERNAL
+      key: 'intelbras_g16_panel_v1.py[pon_online,{HOST.CONN},{$SNMP_COMMUNITY},10]'
+      delay: 10m
+      history: 30d
+      trends: 365d
+      tags:
+      - tag: component
+        value: dashboard
+      - tag: pon
+        value: '10'
+    - uuid: 732738ef4e9442e6b6b9bed6ea6b2e2a
+      name: 'Painel: PON g0/10: RX médio das ONUs online'
+      type: EXTERNAL
+      key: 'intelbras_g16_panel_v1.py[pon_rx_avg,{HOST.CONN},{$SNMP_COMMUNITY},10]'
+      delay: 10m
+      history: 30d
+      trends: 365d
+      value_type: FLOAT
+      units: dBm
+      tags:
+      - tag: component
+        value: dashboard
+      - tag: pon
+        value: '10'
+    - uuid: b4867e10d8564265a04ec5ffabeee768
+      name: 'Painel: PON g0/11: ONUs online'
+      type: EXTERNAL
+      key: 'intelbras_g16_panel_v1.py[pon_online,{HOST.CONN},{$SNMP_COMMUNITY},11]'
+      delay: 10m
+      history: 30d
+      trends: 365d
+      tags:
+      - tag: component
+        value: dashboard
+      - tag: pon
+        value: '11'
+    - uuid: 926b59a6a5d240d290eeb62a3e02d857
+      name: 'Painel: PON g0/11: RX médio das ONUs online'
+      type: EXTERNAL
+      key: 'intelbras_g16_panel_v1.py[pon_rx_avg,{HOST.CONN},{$SNMP_COMMUNITY},11]'
+      delay: 10m
+      history: 30d
+      trends: 365d
+      value_type: FLOAT
+      units: dBm
+      tags:
+      - tag: component
+        value: dashboard
+      - tag: pon
+        value: '11'
+    - uuid: 316feb01cae946e9a4aea10641630c65
+      name: 'Painel: PON g0/12: ONUs online'
+      type: EXTERNAL
+      key: 'intelbras_g16_panel_v1.py[pon_online,{HOST.CONN},{$SNMP_COMMUNITY},12]'
+      delay: 10m
+      history: 30d
+      trends: 365d
+      tags:
+      - tag: component
+        value: dashboard
+      - tag: pon
+        value: '12'
+    - uuid: 941669e0141c4d44b8ab0978470f2a67
+      name: 'Painel: PON g0/12: RX médio das ONUs online'
+      type: EXTERNAL
+      key: 'intelbras_g16_panel_v1.py[pon_rx_avg,{HOST.CONN},{$SNMP_COMMUNITY},12]'
+      delay: 10m
+      history: 30d
+      trends: 365d
+      value_type: FLOAT
+      units: dBm
+      tags:
+      - tag: component
+        value: dashboard
+      - tag: pon
+        value: '12'
+    - uuid: 4fcc424017d343eabbfbc487d06097b1
+      name: 'Painel: PON g0/13: ONUs online'
+      type: EXTERNAL
+      key: 'intelbras_g16_panel_v1.py[pon_online,{HOST.CONN},{$SNMP_COMMUNITY},13]'
+      delay: 10m
+      history: 30d
+      trends: 365d
+      tags:
+      - tag: component
+        value: dashboard
+      - tag: pon
+        value: '13'
+    - uuid: d12b20122a6a4622bd49568d52e556ac
+      name: 'Painel: PON g0/13: RX médio das ONUs online'
+      type: EXTERNAL
+      key: 'intelbras_g16_panel_v1.py[pon_rx_avg,{HOST.CONN},{$SNMP_COMMUNITY},13]'
+      delay: 10m
+      history: 30d
+      trends: 365d
+      value_type: FLOAT
+      units: dBm
+      tags:
+      - tag: component
+        value: dashboard
+      - tag: pon
+        value: '13'
+    - uuid: 9bfacf953d234cd9ad52a80e12cfbab6
+      name: 'Painel: PON g0/14: ONUs online'
+      type: EXTERNAL
+      key: 'intelbras_g16_panel_v1.py[pon_online,{HOST.CONN},{$SNMP_COMMUNITY},14]'
+      delay: 10m
+      history: 30d
+      trends: 365d
+      tags:
+      - tag: component
+        value: dashboard
+      - tag: pon
+        value: '14'
+    - uuid: 0e64de692ea1410898a74b2284dd5588
+      name: 'Painel: PON g0/14: RX médio das ONUs online'
+      type: EXTERNAL
+      key: 'intelbras_g16_panel_v1.py[pon_rx_avg,{HOST.CONN},{$SNMP_COMMUNITY},14]'
+      delay: 10m
+      history: 30d
+      trends: 365d
+      value_type: FLOAT
+      units: dBm
+      tags:
+      - tag: component
+        value: dashboard
+      - tag: pon
+        value: '14'
+    - uuid: 1833c3ac87984e90918a44a5675c9788
+      name: 'Painel: PON g0/15: ONUs online'
+      type: EXTERNAL
+      key: 'intelbras_g16_panel_v1.py[pon_online,{HOST.CONN},{$SNMP_COMMUNITY},15]'
+      delay: 10m
+      history: 30d
+      trends: 365d
+      tags:
+      - tag: component
+        value: dashboard
+      - tag: pon
+        value: '15'
+    - uuid: f0cb77421305458d9a389ace34f3a1e9
+      name: 'Painel: PON g0/15: RX médio das ONUs online'
+      type: EXTERNAL
+      key: 'intelbras_g16_panel_v1.py[pon_rx_avg,{HOST.CONN},{$SNMP_COMMUNITY},15]'
+      delay: 10m
+      history: 30d
+      trends: 365d
+      value_type: FLOAT
+      units: dBm
+      tags:
+      - tag: component
+        value: dashboard
+      - tag: pon
+        value: '15'
+    - uuid: a00bcb7ae4cf40c89fd7ce9bcbd79bfd
+      name: 'Painel: PON g0/16: ONUs online'
+      type: EXTERNAL
+      key: 'intelbras_g16_panel_v1.py[pon_online,{HOST.CONN},{$SNMP_COMMUNITY},16]'
+      delay: 10m
+      history: 30d
+      trends: 365d
+      tags:
+      - tag: component
+        value: dashboard
+      - tag: pon
+        value: '16'
+    - uuid: 0a97abdc027f40ee837f6c94f7ad5c13
+      name: 'Painel: PON g0/16: RX médio das ONUs online'
+      type: EXTERNAL
+      key: 'intelbras_g16_panel_v1.py[pon_rx_avg,{HOST.CONN},{$SNMP_COMMUNITY},16]'
+      delay: 10m
+      history: 30d
+      trends: 365d
+      value_type: FLOAT
+      units: dBm
+      tags:
+      - tag: component
+        value: dashboard
+      - tag: pon
+        value: '16'
+    discovery_rules:
+    - uuid: 2680442d496a4fc4a0287a628f922ec9
+      name: PON discovery
+      type: EXTERNAL
+      key: intelbras_g16_lld_v2.py[pon,{HOST.CONN},{$SNMP_COMMUNITY}]
+      delay: 10m
+      description: Descoberta dinâmica das portas PON g0/1..g0/16 a partir do IF-MIB.
+      item_prototypes:
+      - uuid: da916e323c5e4e7fa81a705981cb8968
+        name: 'PON {#PORTNAME}: Operational status'
+        type: DEPENDENT
+        key: intelbras.g16.pon.oper[{#PORT}]
+        delay: '0'
+        history: 90d
+        valuemap:
+          name: IF-MIB::ifOperStatus
+        tags:
+        - tag: component
+          value: pon
+        - tag: interface
+          value: '{#PORTNAME}'
+        master_item:
+          key: intelbras.g16.if.oper.raw
+        preprocessing:
+        - type: SNMP_WALK_VALUE
+          parameters:
+          - 1.3.6.1.2.1.2.2.1.8.{#IFINDEX}
+          - '0'
+      - uuid: 5d8d94534454463ab5c758a34140959b
+        name: 'PON {#PORTNAME}: TX Mbps'
+        type: DEPENDENT
+        key: intelbras.g16.pon.tx.mbps[{#PORT}]
+        delay: '0'
+        history: 90d
+        units: Mbps
+        tags:
+        - tag: component
+          value: pon
+        - tag: interface
+          value: '{#PORTNAME}'
+        master_item:
+          key: intelbras.g16.pon.raw
+        preprocessing:
+        - type: SNMP_WALK_VALUE
+          parameters:
+          - 1.3.6.1.4.1.13464.1.14.2.3.5.1.3.0.{#PORT}
+          - '0'
+      - uuid: f8f7498e0c274b81a32f8bad6c657bcb
+        name: 'PON {#PORTNAME}: RX Mbps'
+        type: DEPENDENT
+        key: intelbras.g16.pon.rx.mbps[{#PORT}]
+        delay: '0'
+        history: 90d
+        units: Mbps
+        tags:
+        - tag: component
+          value: pon
+        - tag: interface
+          value: '{#PORTNAME}'
+        master_item:
+          key: intelbras.g16.pon.raw
+        preprocessing:
+        - type: SNMP_WALK_VALUE
+          parameters:
+          - 1.3.6.1.4.1.13464.1.14.2.3.5.1.4.0.{#PORT}
+          - '0'
+      - uuid: 9155ecc6e2ba48cda1da6d69537eaa58
+        name: 'PON {#PORTNAME}: TX utilization'
+        type: DEPENDENT
+        key: intelbras.g16.pon.tx.util[{#PORT}]
+        delay: '0'
+        history: 90d
+        units: '%'
+        tags:
+        - tag: component
+          value: pon
+        - tag: interface
+          value: '{#PORTNAME}'
+        master_item:
+          key: intelbras.g16.pon.raw
+        preprocessing:
+        - type: SNMP_WALK_VALUE
+          parameters:
+          - 1.3.6.1.4.1.13464.1.14.2.3.5.1.5.0.{#PORT}
+          - '0'
+      - uuid: 923bfee073664d9fa98f09be900245ee
+        name: 'PON {#PORTNAME}: RX utilization'
+        type: DEPENDENT
+        key: intelbras.g16.pon.rx.util[{#PORT}]
+        delay: '0'
+        history: 90d
+        units: '%'
+        tags:
+        - tag: component
+          value: pon
+        - tag: interface
+          value: '{#PORTNAME}'
+        master_item:
+          key: intelbras.g16.pon.raw
+        preprocessing:
+        - type: SNMP_WALK_VALUE
+          parameters:
+          - 1.3.6.1.4.1.13464.1.14.2.3.5.1.6.0.{#PORT}
+          - '0'
+      - uuid: 9dd6c66bb8e344ec97e768d254de77af
+        name: 'PON {#PORTNAME}: TX pps'
+        type: DEPENDENT
+        key: intelbras.g16.pon.tx.pps[{#PORT}]
+        delay: '0'
+        history: 90d
+        units: pps
+        tags:
+        - tag: component
+          value: pon
+        - tag: interface
+          value: '{#PORTNAME}'
+        master_item:
+          key: intelbras.g16.pon.raw
+        preprocessing:
+        - type: SNMP_WALK_VALUE
+          parameters:
+          - 1.3.6.1.4.1.13464.1.14.2.3.5.1.7.0.{#PORT}
+          - '0'
+      - uuid: 6523670900004e7c98ac7349a6240107
+        name: 'PON {#PORTNAME}: RX pps'
+        type: DEPENDENT
+        key: intelbras.g16.pon.rx.pps[{#PORT}]
+        delay: '0'
+        history: 90d
+        units: pps
+        tags:
+        - tag: component
+          value: pon
+        - tag: interface
+          value: '{#PORTNAME}'
+        master_item:
+          key: intelbras.g16.pon.raw
+        preprocessing:
+        - type: SNMP_WALK_VALUE
+          parameters:
+          - 1.3.6.1.4.1.13464.1.14.2.3.5.1.8.0.{#PORT}
+          - '0'
+      - uuid: b31830eb3d3947ccbaf41fb84c2207af
+        name: 'PON {#PORTNAME}: ONU total'
+        type: DEPENDENT
+        key: intelbras.g16.pon.onu.total[{#PORT}]
+        delay: '0'
+        history: 90d
+        tags:
+        - tag: component
+          value: pon
+        - tag: interface
+          value: '{#PORTNAME}'
+        master_item:
+          key: intelbras.g16.onu.status.raw
+        preprocessing:
+        - type: JAVASCRIPT
+          parameters:
+          - 'var port = ''{#PORT}'';
+
+            var group = ''0'';
+
+            var re = new RegExp(''\\.1\\.3\\.6\\.1\\.4\\.1\\.13464\\.1\\.14\\.2\\.4\\.1\\.1\\.1\\.6\\.''+group+''\\.''+port+''\\.\\d+\\s+=\\s+INTEGER:\\s+\\d+\\s*$'');
+
+            var count=0;
+
+            value.split(/\n+/).forEach(function(line){ if(re.test(line)) count++;});
+
+            return count;'
+      - uuid: c1e776bcfe0e4f368e0dc3a79d3abd8c
+        name: 'PON {#PORTNAME}: ONU online'
+        type: DEPENDENT
+        key: intelbras.g16.pon.onu.online[{#PORT}]
+        delay: '0'
+        history: 90d
+        tags:
+        - tag: component
+          value: pon
+        - tag: interface
+          value: '{#PORTNAME}'
+        master_item:
+          key: intelbras.g16.onu.status.raw
+        preprocessing:
+        - type: JAVASCRIPT
+          parameters:
+          - 'var port = ''{#PORT}'';
+
+            var group = ''0'';
+
+            var re = new RegExp(''\\.1\\.3\\.6\\.1\\.4\\.1\\.13464\\.1\\.14\\.2\\.4\\.1\\.1\\.1\\.6\\.''+group+''\\.''+port+''\\.\\d+\\s+=\\s+INTEGER:\\s+1\\s*$'');
+
+            var count=0;
+
+            value.split(/\n+/).forEach(function(line){ if(re.test(line)) count++;});
+
+            return count;'
+      - uuid: d8b5d8b5d8b54a1aa1aa1234567890ab
+        name: 'PON {#PORTNAME}: ONU offline'
+        type: DEPENDENT
+        key: intelbras.g16.pon.onu.offline[{#PORT}]
+        delay: '0'
+        history: 30d
+        units: ''
+        tags:
+        - tag: component
+          value: pon
+        - tag: scope
+          value: counter
+        master_item:
+          key: intelbras.g16.pon.raw
+        preprocessing:
+        - type: SNMP_WALK_VALUE
+          parameters:
+          - 1.3.6.1.4.1.13464.1.14.2.3.5.1.6.0.{#PORT}
+          - '0'
+      trigger_prototypes:
+      - uuid: 8f0fa6ca0c27471bb8e5f71a64894393
+        expression: last(/Intelbras_G16_SNMP_ScriptV2/intelbras.g16.pon.onu.total[{#PORT}])>0
+          and last(/Intelbras_G16_SNMP_ScriptV2/intelbras.g16.pon.oper[{#PORT}])<>1
+        name: 'PON {#PORTNAME}: Link down (porta com clientes - possível rompimento/falha)'
+        opdata: 'Status atual: {ITEM.LASTVALUE1}'
+        priority: DISASTER
+        description: A interface PON está fora de operação. Pode indicar rompimento,
+          falha óptica ou indisponibilidade da porta.
+        tags:
+        - tag: scope
+          value: availability
+        - tag: component
+          value: pon
+      - uuid: e9c1e9c1e9c14b22b22b1234567890ab
+        expression: last(/Intelbras_G16_SNMP_ScriptV2/intelbras.g16.pon.onu.total[{#PORT}])>0
+          and last(/Intelbras_G16_SNMP_ScriptV2/intelbras.g16.pon.oper[{#PORT}])=1
+          and last(/Intelbras_G16_SNMP_ScriptV2/intelbras.g16.pon.onu.online[{#PORT}])=0
+        name: 'PON {#PORTNAME}: Todas as ONUs offline (porta up - possível falta de
+          energia/localidade)'
+        priority: HIGH
+        description: Porta PON possui ONUs provisionadas, porém nenhuma ONU está online.
+        tags:
+        - tag: scope
+          value: availability
+        - tag: component
+          value: pon
+      graph_prototypes:
+      - uuid: 68144819c70d49e28f03bc6b38c5eee4
+        name: 'PON {#PORTNAME}: Traffic'
+        graph_items:
+        - color: 1A7C11
+          item:
+            host: Intelbras_G16_SNMP_ScriptV2
+            key: intelbras.g16.pon.tx.mbps[{#PORT}]
+        - sortorder: '1'
+          color: 2774A4
+          item:
+            host: Intelbras_G16_SNMP_ScriptV2
+            key: intelbras.g16.pon.rx.mbps[{#PORT}]
+      - uuid: 198302e741fa463e9e95264b853a57ad
+        name: 'PON {#PORTNAME}: Utilization'
+        graph_items:
+        - color: F63100
+          item:
+            host: Intelbras_G16_SNMP_ScriptV2
+            key: intelbras.g16.pon.tx.util[{#PORT}]
+        - sortorder: '1'
+          color: A54F10
+          item:
+            host: Intelbras_G16_SNMP_ScriptV2
+            key: intelbras.g16.pon.rx.util[{#PORT}]
+      - uuid: 70cc9ec0a7ce49d2abe1bdc47b9fdc8d
+        name: 'PON {#PORTNAME}: ONU counters'
+        graph_items:
+        - color: 1A7C11
+          item:
+            host: Intelbras_G16_SNMP_ScriptV2
+            key: intelbras.g16.pon.onu.online[{#PORT}]
+        - sortorder: '1'
+          color: 2774A4
+          item:
+            host: Intelbras_G16_SNMP_ScriptV2
+            key: intelbras.g16.pon.onu.total[{#PORT}]
+    - uuid: 8d3d798e9eae4d488847d49cd3ccb811
+      name: Ethernet uplink discovery
+      type: EXTERNAL
+      key: intelbras_g16_lld_v2.py[uplink,{HOST.CONN},{$SNMP_COMMUNITY}]
+      delay: 10m
+      description: Descoberta dinâmica das portas Ethernet de uplink e1/* e e2/* a
+        partir do IF-MIB.
+      item_prototypes:
+      - uuid: 5f11855baae04ac5b24943e2e114ece9
+        name: 'Uplink {#PORTNAME}: Operational status'
+        type: DEPENDENT
+        key: intelbras.g16.uplink.oper[{#GROUP}.{#PORT}]
+        delay: '0'
+        history: 90d
+        valuemap:
+          name: IF-MIB::ifOperStatus
+        tags:
+        - tag: component
+          value: uplink
+        - tag: interface
+          value: '{#PORTNAME}'
+        master_item:
+          key: intelbras.g16.if.oper.raw
+        preprocessing:
+        - type: SNMP_WALK_VALUE
+          parameters:
+          - 1.3.6.1.2.1.2.2.1.8.{#IFINDEX}
+          - '0'
+      - uuid: a66fd6d96ce242d6815b98b167cbfba0
+        name: 'Uplink {#PORTNAME}: In bps'
+        type: DEPENDENT
+        key: intelbras.g16.uplink.in.bps[{#GROUP}.{#PORT}]
+        delay: '0'
+        history: 90d
+        units: bps
+        tags:
+        - tag: component
+          value: uplink
+        - tag: interface
+          value: '{#PORTNAME}'
+        master_item:
+          key: intelbras.g16.if.in.raw
+        preprocessing:
+        - type: SNMP_WALK_VALUE
+          parameters:
+          - 1.3.6.1.2.1.2.2.1.10.{#IFINDEX}
+          - '0'
+        - type: CHANGE_PER_SECOND
+          parameters:
+          - ''
+        - type: MULTIPLIER
+          parameters:
+          - '8'
+      - uuid: a269519d8c7248ae88f34c2c55761689
+        name: 'Uplink {#PORTNAME}: Out bps'
+        type: DEPENDENT
+        key: intelbras.g16.uplink.out.bps[{#GROUP}.{#PORT}]
+        delay: '0'
+        history: 90d
+        units: bps
+        tags:
+        - tag: component
+          value: uplink
+        - tag: interface
+          value: '{#PORTNAME}'
+        master_item:
+          key: intelbras.g16.if.out.raw
+        preprocessing:
+        - type: SNMP_WALK_VALUE
+          parameters:
+          - 1.3.6.1.2.1.2.2.1.16.{#IFINDEX}
+          - '0'
+        - type: CHANGE_PER_SECOND
+          parameters:
+          - ''
+        - type: MULTIPLIER
+          parameters:
+          - '8'
+      - uuid: ca0390df4a1b4490afea34363f8b4eb9
+        name: 'Uplink {#PORTNAME}: Speed'
+        type: DEPENDENT
+        key: intelbras.g16.uplink.speed[{#GROUP}.{#PORT}]
+        delay: '0'
+        history: 30d
+        units: bps
+        tags:
+        - tag: component
+          value: uplink
+        - tag: interface
+          value: '{#PORTNAME}'
+        master_item:
+          key: intelbras.g16.if.speed.raw
+        preprocessing:
+        - type: SNMP_WALK_VALUE
+          parameters:
+          - 1.3.6.1.2.1.2.2.1.5.{#IFINDEX}
+          - '0'
+      trigger_prototypes:
+      - uuid: 0d25e65449674589a07179ea063fccbe
+        expression: last(/Intelbras_G16_SNMP_ScriptV2/intelbras.g16.uplink.oper[{#GROUP}.{#PORT}])<>1
+          and max(/Intelbras_G16_SNMP_ScriptV2/intelbras.g16.uplink.oper[{#GROUP}.{#PORT}],7d)=1
+        name: 'Uplink {#PORTNAME}: Link down'
+        priority: DISASTER
+        tags:
+        - tag: scope
+          value: availability
+        - tag: component
+          value: uplink
+      graph_prototypes:
+      - uuid: 56be2e98c6c844cf93fd7d24f9b5a833
+        name: 'Uplink {#PORTNAME}: Traffic'
+        graph_items:
+        - color: 1A7C11
+          item:
+            host: Intelbras_G16_SNMP_ScriptV2
+            key: intelbras.g16.uplink.in.bps[{#GROUP}.{#PORT}]
+        - sortorder: '1'
+          color: 2774A4
+          item:
+            host: Intelbras_G16_SNMP_ScriptV2
+            key: intelbras.g16.uplink.out.bps[{#GROUP}.{#PORT}]
+    - uuid: 0b502b3ea681473d853e2a42c728dbaa
+      name: SFP discovery
+      type: EXTERNAL
+      key: intelbras_g16_lld_v2.py[sfp,{HOST.CONN},{$SNMP_COMMUNITY}]
+      delay: 10m
+      description: Descoberta dinâmica dos SFPs presentes com base na MIB privada
+        Intelbras.
+      item_prototypes:
+      - uuid: 015daa11c22e470ea4a6e0b817b52bb7
+        name: 'SFP {#PORTNAME}: Vendor'
+        type: DEPENDENT
+        key: intelbras.g16.sfp.vendor[{#GROUP}.{#PORT}]
+        delay: '0'
+        history: 30d
+        master_item:
+          key: intelbras.g16.sfp.raw
+        value_type: CHAR
+        tags:
+        - tag: component
+          value: sfp
+        - tag: interface
+          value: '{#PORTNAME}'
+        preprocessing:
+        - type: SNMP_WALK_VALUE
+          parameters:
+          - 1.3.6.1.4.1.13464.1.14.2.3.3.1.11.{#GROUP}.{#PORT}
+          - '0'
+      - uuid: 6bab17ca6ac74c8f926b5083396bea0f
+        name: 'SFP {#PORTNAME}: Serial'
+        type: DEPENDENT
+        key: intelbras.g16.sfp.serial[{#GROUP}.{#PORT}]
+        delay: '0'
+        history: 30d
+        master_item:
+          key: intelbras.g16.sfp.raw
+        value_type: CHAR
+        tags:
+        - tag: component
+          value: sfp
+        - tag: interface
+          value: '{#PORTNAME}'
+        preprocessing:
+        - type: SNMP_WALK_VALUE
+          parameters:
+          - 1.3.6.1.4.1.13464.1.14.2.3.3.1.9.{#GROUP}.{#PORT}
+          - '0'
+      - uuid: 2eabd944fb944eb8bdfdb88bb153aac1
+        name: 'SFP {#PORTNAME}: Transceiver type'
+        type: DEPENDENT
+        key: intelbras.g16.sfp.type[{#GROUP}.{#PORT}]
+        delay: '0'
+        history: 30d
+        master_item:
+          key: intelbras.g16.sfp.raw
+        value_type: CHAR
+        tags:
+        - tag: component
+          value: sfp
+        - tag: interface
+          value: '{#PORTNAME}'
+        preprocessing:
+        - type: SNMP_WALK_VALUE
+          parameters:
+          - 1.3.6.1.4.1.13464.1.14.2.3.3.1.3.{#GROUP}.{#PORT}
+          - '0'
+      - uuid: be0e11f891b34088b794da4c5719d066
+        name: 'SFP {#PORTNAME}: Connector type'
+        type: DEPENDENT
+        key: intelbras.g16.sfp.connector[{#GROUP}.{#PORT}]
+        delay: '0'
+        history: 30d
+        master_item:
+          key: intelbras.g16.sfp.raw
+        value_type: CHAR
+        tags:
+        - tag: component
+          value: sfp
+        - tag: interface
+          value: '{#PORTNAME}'
+        preprocessing:
+        - type: SNMP_WALK_VALUE
+          parameters:
+          - 1.3.6.1.4.1.13464.1.14.2.3.3.1.5.{#GROUP}.{#PORT}
+          - '0'
+      - uuid: 96fb657ef8cb4adbaeeda330246fdd08
+        name: 'SFP {#PORTNAME}: Manufacture date'
+        type: DEPENDENT
+        key: intelbras.g16.sfp.mfgdate[{#GROUP}.{#PORT}]
+        delay: '0'
+        history: 30d
+        master_item:
+          key: intelbras.g16.sfp.raw
+        value_type: CHAR
+        tags:
+        - tag: component
+          value: sfp
+        - tag: interface
+          value: '{#PORTNAME}'
+        preprocessing:
+        - type: SNMP_WALK_VALUE
+          parameters:
+          - 1.3.6.1.4.1.13464.1.14.2.3.3.1.10.{#GROUP}.{#PORT}
+          - '0'
+      - uuid: 08c03917775a4e16be9f187efafcf338
+        name: 'SFP {#PORTNAME}: Class'
+        type: DEPENDENT
+        key: intelbras.g16.sfp.class[{#GROUP}.{#PORT}]
+        delay: '0'
+        history: 30d
+        master_item:
+          key: intelbras.g16.sfp.raw
+        value_type: CHAR
+        tags:
+        - tag: component
+          value: sfp
+        - tag: interface
+          value: '{#PORTNAME}'
+        preprocessing:
+        - type: SNMP_WALK_VALUE
+          parameters:
+          - 1.3.6.1.4.1.13464.1.14.2.3.3.1.26.{#GROUP}.{#PORT}
+          - '0'
+      - uuid: 0d7772f19994451db3490e51d598ce33
+        name: 'SFP {#PORTNAME}: Temperature'
+        type: DEPENDENT
+        key: intelbras.g16.sfp.temp[{#GROUP}.{#PORT}]
+        delay: '0'
+        history: 30d
+        master_item:
+          key: intelbras.g16.sfp.raw
+        units: C
+        tags:
+        - tag: component
+          value: sfp
+        - tag: interface
+          value: '{#PORTNAME}'
+        preprocessing:
+        - type: SNMP_WALK_VALUE
+          parameters:
+          - 1.3.6.1.4.1.13464.1.14.2.3.3.1.12.{#GROUP}.{#PORT}
+          - '0'
+        - type: JAVASCRIPT
+          parameters:
+          - 'var v = String(value).replace(/^"(.*)"$/, ''$1'').trim();
+
+            if (v === '''' || v === ''-'') return -9999;
+
+            return parseFloat(v);
+
+            '
+      - uuid: 56872e6ba3984fa780667f9afc7ae531
+        name: 'SFP {#PORTNAME}: Voltage'
+        type: DEPENDENT
+        key: intelbras.g16.sfp.voltage[{#GROUP}.{#PORT}]
+        delay: '0'
+        history: 30d
+        master_item:
+          key: intelbras.g16.sfp.raw
+        units: V
+        tags:
+        - tag: component
+          value: sfp
+        - tag: interface
+          value: '{#PORTNAME}'
+        preprocessing:
+        - type: SNMP_WALK_VALUE
+          parameters:
+          - 1.3.6.1.4.1.13464.1.14.2.3.3.1.13.{#GROUP}.{#PORT}
+          - '0'
+        - type: JAVASCRIPT
+          parameters:
+          - 'var v = String(value).replace(/^"(.*)"$/, ''$1'').trim();
+
+            if (v === '''' || v === ''-'') return -9999;
+
+            return parseFloat(v);
+
+            '
+      - uuid: 08372d3f8f384c0ebbed2cdac185f481
+        name: 'SFP {#PORTNAME}: Bias current'
+        type: DEPENDENT
+        key: intelbras.g16.sfp.bias[{#GROUP}.{#PORT}]
+        delay: '0'
+        history: 30d
+        master_item:
+          key: intelbras.g16.sfp.raw
+        units: mA
+        tags:
+        - tag: component
+          value: sfp
+        - tag: interface
+          value: '{#PORTNAME}'
+        preprocessing:
+        - type: SNMP_WALK_VALUE
+          parameters:
+          - 1.3.6.1.4.1.13464.1.14.2.3.3.1.14.{#GROUP}.{#PORT}
+          - '0'
+        - type: JAVASCRIPT
+          parameters:
+          - 'var v = String(value).replace(/^"(.*)"$/, ''$1'').trim();
+
+            if (v === '''' || v === ''-'') return -9999;
+
+            return parseFloat(v);
+
+            '
+      - uuid: 7eb775d938814d4a82bc3cecc458da31
+        name: 'SFP {#PORTNAME}: RX power'
+        type: DEPENDENT
+        key: intelbras.g16.sfp.rx.dbm[{#GROUP}.{#PORT}]
+        delay: '0'
+        history: 30d
+        master_item:
+          key: intelbras.g16.sfp.raw
+        units: dBm
+        tags:
+        - tag: component
+          value: sfp
+        - tag: interface
+          value: '{#PORTNAME}'
+        preprocessing:
+        - type: SNMP_WALK_VALUE
+          parameters:
+          - 1.3.6.1.4.1.13464.1.14.2.3.3.1.17.{#GROUP}.{#PORT}
+          - '0'
+        - type: JAVASCRIPT
+          parameters:
+          - 'var v = String(value).replace(/^"(.*)"$/, ''$1'').trim();
+
+            if (v === '''' || v === ''-'') return -9999;
+
+            return parseFloat(v);
+
+            '
+      - uuid: 710be05e7ffb474cbb49990fcb05774f
+        name: 'SFP {#PORTNAME}: TX power'
+        type: DEPENDENT
+        key: intelbras.g16.sfp.tx.dbm[{#GROUP}.{#PORT}]
+        delay: '0'
+        history: 30d
+        master_item:
+          key: intelbras.g16.sfp.raw
+        units: dBm
+        tags:
+        - tag: component
+          value: sfp
+        - tag: interface
+          value: '{#PORTNAME}'
+        preprocessing:
+        - type: SNMP_WALK_VALUE
+          parameters:
+          - 1.3.6.1.4.1.13464.1.14.2.3.3.1.20.{#GROUP}.{#PORT}
+          - '0'
+        - type: JAVASCRIPT
+          parameters:
+          - 'var v = String(value).replace(/^"(.*)"$/, ''$1'').trim();
+
+            if (v === '''' || v === ''-'') return -9999;
+
+            return parseFloat(v);
+
+            '
+      trigger_prototypes:
+      - uuid: cfd267a2a7824fc19abd233d216d7456
+        expression: last(/Intelbras_G16_SNMP_ScriptV2/intelbras.g16.sfp.temp[{#GROUP}.{#PORT}])>{$SFP.TEMP.WARN}
+          and last(/Intelbras_G16_SNMP_ScriptV2/intelbras.g16.sfp.temp[{#GROUP}.{#PORT}])<>-9999
+        name: 'SFP {#PORTNAME}: Temperatura alta'
+        priority: WARNING
+        opdata: 'Temperatura: {ITEM.LASTVALUE1}'
+        tags:
+        - tag: scope
+          value: environment
+        - tag: component
+          value: sfp
+      - uuid: d681527432ba4ace95ab381db3d583a9
+        expression: last(/Intelbras_G16_SNMP_ScriptV2/intelbras.g16.sfp.rx.dbm[{#GROUP}.{#PORT}])<{$SFP.RX.MIN}
+          and last(/Intelbras_G16_SNMP_ScriptV2/intelbras.g16.sfp.rx.dbm[{#GROUP}.{#PORT}])<>-9999
+        name: 'SFP {#PORTNAME}: RX óptico baixo'
+        priority: WARNING
+        opdata: 'RX: {ITEM.LASTVALUE1}'
+        tags:
+        - tag: scope
+          value: optical
+        - tag: component
+          value: sfp
+      graph_prototypes:
+      - uuid: de3a01c46d5a4e7cae853b0220481f19
+        name: 'SFP {#PORTNAME}: Optical levels'
+        graph_items:
+        - color: 1A7C11
+          item:
+            host: Intelbras_G16_SNMP_ScriptV2
+            key: intelbras.g16.sfp.rx.dbm[{#GROUP}.{#PORT}]
+        - sortorder: '1'
+          color: 2774A4
+          item:
+            host: Intelbras_G16_SNMP_ScriptV2
+            key: intelbras.g16.sfp.tx.dbm[{#GROUP}.{#PORT}]
+      - uuid: b18510629d8b4b33b2ce3a17662019ed
+        name: 'SFP {#PORTNAME}: Environment'
+        graph_items:
+        - color: F63100
+          item:
+            host: Intelbras_G16_SNMP_ScriptV2
+            key: intelbras.g16.sfp.temp[{#GROUP}.{#PORT}]
+        - sortorder: '1'
+          color: A54F10
+          item:
+            host: Intelbras_G16_SNMP_ScriptV2
+            key: intelbras.g16.sfp.voltage[{#GROUP}.{#PORT}]
+        - sortorder: '2'
+          color: 2774A4
+          item:
+            host: Intelbras_G16_SNMP_ScriptV2
+            key: intelbras.g16.sfp.bias[{#GROUP}.{#PORT}]
+    - uuid: aa2fe1cbec6149428a7b7c416c7460a9
+      name: ONU discovery
+      type: EXTERNAL
+      key: intelbras_g16_lld_v2.py[onu,{HOST.CONN},{$SNMP_COMMUNITY}]
+      delay: 10m
+      description: Descoberta dinâmica das ONUs a partir da tabela básica da Intelbras
+        G16.
+      item_prototypes:
+      - uuid: 2b7d57b60eee4de8b51b7422dad281e9
+        name: 'ONU PON {#ONU_PORT} ID {#ONU_INDEX}: Description'
+        type: DEPENDENT
+        key: intelbras.g16.onu.desc[{#SNMPINDEX}]
+        delay: '0'
+        history: 30d
+        master_item:
+          key: intelbras.g16.onu.basic.raw
+        value_type: CHAR
+        tags:
+        - tag: component
+          value: onu
+        - tag: pon
+          value: '{#ONU_PORT}'
+        - tag: onu
+          value: '{#ONU_INDEX}'
+        preprocessing:
+        - type: SNMP_WALK_VALUE
+          parameters:
+          - 1.3.6.1.4.1.13464.1.14.2.4.1.1.1.4.{#SNMPINDEX}
+          - '0'
+      - uuid: fb67bce0b6714f6cae3db207d693b62f
+        name: 'ONU PON {#ONU_PORT} ID {#ONU_INDEX}: Type'
+        type: DEPENDENT
+        key: intelbras.g16.onu.type[{#SNMPINDEX}]
+        delay: '0'
+        history: 30d
+        master_item:
+          key: intelbras.g16.onu.basic.raw
+        value_type: CHAR
+        tags:
+        - tag: component
+          value: onu
+        - tag: pon
+          value: '{#ONU_PORT}'
+        - tag: onu
+          value: '{#ONU_INDEX}'
+        preprocessing:
+        - type: SNMP_WALK_VALUE
+          parameters:
+          - 1.3.6.1.4.1.13464.1.14.2.4.1.1.1.5.{#SNMPINDEX}
+          - '0'
+      - uuid: e7550709531746838635697419ee9831
+        name: 'ONU PON {#ONU_PORT} ID {#ONU_INDEX}: Operational status'
+        type: DEPENDENT
+        key: intelbras.g16.onu.status[{#SNMPINDEX}]
+        delay: '0'
+        history: 30d
+        master_item:
+          key: intelbras.g16.onu.basic.raw
+        valuemap:
+          name: Intelbras ONU operational status
+        tags:
+        - tag: component
+          value: onu
+        - tag: pon
+          value: '{#ONU_PORT}'
+        - tag: onu
+          value: '{#ONU_INDEX}'
+        preprocessing:
+        - type: SNMP_WALK_VALUE
+          parameters:
+          - 1.3.6.1.4.1.13464.1.14.2.4.1.1.1.6.{#SNMPINDEX}
+          - '0'
+      - uuid: 98dd80d25ddf4963bcc5bb5491aec714
+        name: 'ONU PON {#ONU_PORT} ID {#ONU_INDEX}: Distance'
+        type: DEPENDENT
+        key: intelbras.g16.onu.distance[{#SNMPINDEX}]
+        delay: '0'
+        history: 30d
+        master_item:
+          key: intelbras.g16.onu.basic.raw
+        value_type: CHAR
+        tags:
+        - tag: component
+          value: onu
+        - tag: pon
+          value: '{#ONU_PORT}'
+        - tag: onu
+          value: '{#ONU_INDEX}'
+        preprocessing:
+        - type: SNMP_WALK_VALUE
+          parameters:
+          - 1.3.6.1.4.1.13464.1.14.2.4.1.1.1.7.{#SNMPINDEX}
+          - '0'
+      - uuid: 10d6d0b0e33b45ebb3c808c09cc67583
+        name: 'ONU PON {#ONU_PORT} ID {#ONU_INDEX}: Serial'
+        type: DEPENDENT
+        key: intelbras.g16.onu.serial[{#SNMPINDEX}]
+        delay: '0'
+        history: 30d
+        master_item:
+          key: intelbras.g16.onu.basic.raw
+        value_type: CHAR
+        tags:
+        - tag: component
+          value: onu
+        - tag: pon
+          value: '{#ONU_PORT}'
+        - tag: onu
+          value: '{#ONU_INDEX}'
+        preprocessing:
+        - type: SNMP_WALK_VALUE
+          parameters:
+          - 1.3.6.1.4.1.13464.1.14.2.4.1.1.1.8.{#SNMPINDEX}
+          - '0'
+      - uuid: 2199195d01fd45ffb79e886f0dba055d
+        name: 'ONU PON {#ONU_PORT} ID {#ONU_INDEX}: Active/deactive time'
+        type: DEPENDENT
+        key: intelbras.g16.onu.active_time[{#SNMPINDEX}]
+        delay: '0'
+        history: 30d
+        master_item:
+          key: intelbras.g16.onu.basic.raw
+        value_type: CHAR
+        tags:
+        - tag: component
+          value: onu
+        - tag: pon
+          value: '{#ONU_PORT}'
+        - tag: onu
+          value: '{#ONU_INDEX}'
+        preprocessing:
+        - type: SNMP_WALK_VALUE
+          parameters:
+          - 1.3.6.1.4.1.13464.1.14.2.4.1.1.1.14.{#SNMPINDEX}
+          - '0'
+      - uuid: 3b3bb6fb4748462392a7093e7b887532
+        name: 'ONU PON {#ONU_PORT} ID {#ONU_INDEX}: Vendor ID'
+        type: DEPENDENT
+        key: intelbras.g16.onu.vendorid[{#SNMPINDEX}]
+        delay: '0'
+        history: 30d
+        master_item:
+          key: intelbras.g16.onu.version.raw
+        value_type: CHAR
+        tags:
+        - tag: component
+          value: onu
+        - tag: pon
+          value: '{#ONU_PORT}'
+        - tag: onu
+          value: '{#ONU_INDEX}'
+        preprocessing:
+        - type: SNMP_WALK_VALUE
+          parameters:
+          - 1.3.6.1.4.1.13464.1.14.2.4.1.2.1.4.{#SNMPINDEX}
+          - '0'
+      - uuid: f143d14401804f7ca53fa1d6844517d3
+        name: 'ONU PON {#ONU_PORT} ID {#ONU_INDEX}: Device ID'
+        type: DEPENDENT
+        key: intelbras.g16.onu.deviceid[{#SNMPINDEX}]
+        delay: '0'
+        history: 30d
+        master_item:
+          key: intelbras.g16.onu.version.raw
+        value_type: CHAR
+        tags:
+        - tag: component
+          value: onu
+        - tag: pon
+          value: '{#ONU_PORT}'
+        - tag: onu
+          value: '{#ONU_INDEX}'
+        preprocessing:
+        - type: SNMP_WALK_VALUE
+          parameters:
+          - 1.3.6.1.4.1.13464.1.14.2.4.1.2.1.5.{#SNMPINDEX}
+          - '0'
+      - uuid: eadbe3208c6b42ed831cc625b2de56e7
+        name: 'ONU PON {#ONU_PORT} ID {#ONU_INDEX}: Main version'
+        type: DEPENDENT
+        key: intelbras.g16.onu.mainver[{#SNMPINDEX}]
+        delay: '0'
+        history: 30d
+        master_item:
+          key: intelbras.g16.onu.version.raw
+        value_type: CHAR
+        tags:
+        - tag: component
+          value: onu
+        - tag: pon
+          value: '{#ONU_PORT}'
+        - tag: onu
+          value: '{#ONU_INDEX}'
+        preprocessing:
+        - type: SNMP_WALK_VALUE
+          parameters:
+          - 1.3.6.1.4.1.13464.1.14.2.4.1.2.1.7.{#SNMPINDEX}
+          - '0'
+      - uuid: ab1ae959f1424ecd8425a4cb16e2d3d0
+        name: 'ONU PON {#ONU_PORT} ID {#ONU_INDEX}: Secondary version'
+        type: DEPENDENT
+        key: intelbras.g16.onu.subver[{#SNMPINDEX}]
+        delay: '0'
+        history: 30d
+        master_item:
+          key: intelbras.g16.onu.version.raw
+        value_type: CHAR
+        tags:
+        - tag: component
+          value: onu
+        - tag: pon
+          value: '{#ONU_PORT}'
+        - tag: onu
+          value: '{#ONU_INDEX}'
+        preprocessing:
+        - type: SNMP_WALK_VALUE
+          parameters:
+          - 1.3.6.1.4.1.13464.1.14.2.4.1.2.1.8.{#SNMPINDEX}
+          - '0'
+      - uuid: 2f0ce82b0f8644839efdfef52b45b111
+        name: 'ONU PON {#ONU_PORT} ID {#ONU_INDEX}: RX optical'
+        type: DEPENDENT
+        key: intelbras.g16.onu.rx.optical[{#SNMPINDEX}]
+        delay: '0'
+        history: 30d
+        master_item:
+          key: intelbras.g16.onu.optical.raw
+        units: dBm
+        value_type: FLOAT
+        tags:
+        - tag: component
+          value: onu
+        - tag: pon
+          value: '{#ONU_PORT}'
+        - tag: onu
+          value: '{#ONU_INDEX}'
+        preprocessing:
+        - type: SNMP_WALK_VALUE
+          parameters:
+          - 1.3.6.1.4.1.13464.1.14.2.4.1.9.1.5.{#SNMPINDEX}
+          - '0'
+        - type: JAVASCRIPT
+          parameters:
+          - 'var v = String(value).replace(/^"(.*)"$/, ''$1'').trim();
+
+            if (v === '''' || v === ''-'') return -9999;
+
+            return parseFloat(v);
+
+            '
+      - uuid: 97d20b52556642968056e72cf24656f4
+        name: 'ONU PON {#ONU_PORT} ID {#ONU_INDEX}: TX optical'
+        type: DEPENDENT
+        key: intelbras.g16.onu.tx.optical[{#SNMPINDEX}]
+        delay: '0'
+        history: 30d
+        master_item:
+          key: intelbras.g16.onu.optical.raw
+        units: dBm
+        value_type: FLOAT
+        tags:
+        - tag: component
+          value: onu
+        - tag: pon
+          value: '{#ONU_PORT}'
+        - tag: onu
+          value: '{#ONU_INDEX}'
+        preprocessing:
+        - type: SNMP_WALK_VALUE
+          parameters:
+          - 1.3.6.1.4.1.13464.1.14.2.4.1.9.1.6.{#SNMPINDEX}
+          - '0'
+        - type: JAVASCRIPT
+          parameters:
+          - 'var v = String(value).replace(/^"(.*)"$/, ''$1'').trim();
+
+            if (v === '''' || v === ''-'') return -9999;
+
+            return parseFloat(v);
+
+            '
+      graph_prototypes:
+      - uuid: 9d8bcad0f6bd404f95dc997ee5b60111
+        name: 'ONU PON {#ONU_PORT} ID {#ONU_INDEX}: Optical'
+        graph_items:
+        - color: 2774A4
+          item:
+            host: Intelbras_G16_SNMP_ScriptV2
+            key: intelbras.g16.onu.rx.optical[{#SNMPINDEX}]
+      - uuid: 8f363c4c535d425dacd658193aa1b00f
+        name: 'ONU PON {#ONU_PORT} ID {#ONU_INDEX}: Optical levels'
+        show_work_period: 'YES'
+        show_triggers: 'YES'
+        type: NORMAL
+        show_legend: 'YES'
+        show_3d: 'NO'
+        percent_left: '0'
+        percent_right: '0'
+        graph_items:
+        - sortorder: '1'
+          color: 1A7C11
+          item:
+            host: Intelbras_G16_SNMP_ScriptV2
+            key: intelbras.g16.onu.rx.optical[{#SNMPINDEX}]
+        - sortorder: '2'
+          color: F63100
+          item:
+            host: Intelbras_G16_SNMP_ScriptV2
+            key: intelbras.g16.onu.tx.optical[{#SNMPINDEX}]
+      trigger_prototypes: []
+    dashboards:
+    - uuid: d00e3177a82641a7b11954ec8ecb2424
+      name: Visão geral
+      pages:
+      - name: Visão geral
+        widgets:
+        - type: graph
+          x: '0'
+          y: '0'
+          width: '12'
+          height: '5'
+          fields:
+          - type: GRAPH
+            name: graphid
+            value:
+              host: Intelbras_G16_SNMP_ScriptV2
+              name: Saúde do sistema
+        - type: graph
+          x: '12'
+          y: '0'
+          width: '12'
+          height: '5'
+          fields:
+          - type: GRAPH
+            name: graphid
+            value:
+              host: Intelbras_G16_SNMP_ScriptV2
+              name: Contadores de ONUs
+        - type: graph
+          x: '0'
+          y: '5'
+          width: '12'
+          height: '6'
+          fields:
+          - type: GRAPH
+            name: graphid
+            value:
+              host: Intelbras_G16_SNMP_ScriptV2
+              name: RX médio das ONUs online por PON
+        - type: graph
+          x: '12'
+          y: '5'
+          width: '12'
+          height: '6'
+          fields:
+          - type: GRAPH
+            name: graphid
+            value:
+              host: Intelbras_G16_SNMP_ScriptV2
+              name: Quantidade de ONUs online por PON
+    valuemaps:
+    - uuid: 7f794b74f772446db7f2f0dc5b82cd54
+      name: Service state
+      mappings:
+      - value: '0'
+        newvalue: Down
+      - value: '1'
+        newvalue: Up
+    - uuid: 6ae8f5d9376b48f28dd30d3d1916d7db
+      name: IF-MIB::ifOperStatus
+      mappings:
+      - value: '1'
+        newvalue: Up
+      - value: '2'
+        newvalue: Down
+      - value: '3'
+        newvalue: Testing
+      - value: '4'
+        newvalue: Unknown
+      - value: '5'
+        newvalue: Dormant
+      - value: '6'
+        newvalue: Not present
+      - value: '7'
+        newvalue: Lower layer down
+    - uuid: 536b2845302544cf8b264ec5e020f124
+      name: Intelbras ONU operational status
+      mappings:
+      - value: '0'
+        newvalue: Offline
+      - value: '1'
+        newvalue: Online
+  triggers:
+  - uuid: 958be1e361964871b28b019bf6419a53
+    expression: max(/Intelbras_G16_SNMP_ScriptV2/icmpping,#3)=0
+    name: 'OLT Intelbras G16: indisponível por ICMP'
+    priority: HIGH
+    tags:
+    - tag: scope
+      value: availability
+  - uuid: 250bb939e5cb4ba993978479391961ea
+    expression: min(/Intelbras_G16_SNMP_ScriptV2/intelbras.g16.cpu,5m)>{$CPU.CRIT}
+    name: 'OLT Intelbras G16: CPU crítica'
+    priority: HIGH
+    opdata: 'CPU: {ITEM.LASTVALUE1}'
+    tags:
+    - tag: scope
+      value: performance
+  - uuid: 1467ebaf6690489895310c881bfa6811
+    expression: min(/Intelbras_G16_SNMP_ScriptV2/intelbras.g16.cpu,5m)>{$CPU.WARN}
+      and min(/Intelbras_G16_SNMP_ScriptV2/intelbras.g16.cpu,5m)<{$CPU.CRIT}
+    name: 'OLT Intelbras G16: CPU alta'
+    priority: WARNING
+    opdata: 'CPU: {ITEM.LASTVALUE1}'
+    tags:
+    - tag: scope
+      value: performance
+  - uuid: e0d64cf493be4573a0d056b9b3fc9c8b
+    expression: last(/Intelbras_G16_SNMP_ScriptV2/intelbras.g16.temp.switch)>{$TEMP.SWITCH.WARN}
+    name: 'OLT Intelbras G16: Temperatura alta do chipset switch'
+    priority: WARNING
+    opdata: 'Temperatura: {ITEM.LASTVALUE1}'
+    tags:
+    - tag: scope
+      value: environment
+  - uuid: dcf714964b594c88a8756e943d4d585c
+    expression: last(/Intelbras_G16_SNMP_ScriptV2/intelbras.g16.temp.gpon)>{$TEMP.GPON.WARN}
+    name: 'OLT Intelbras G16: Temperatura alta do chipset GPON'
+    priority: WARNING
+    opdata: 'Temperatura: {ITEM.LASTVALUE1}'
+    tags:
+    - tag: scope
+      value: environment
+  graphs:
+  - uuid: c8f21f4893f141f0bf81211f860e0515
+    name: Saúde do sistema
+    graph_items:
+    - color: 1A7C11
+      item:
+        host: Intelbras_G16_SNMP_ScriptV2
+        key: intelbras.g16.cpu
+    - sortorder: '1'
+      color: 2774A4
+      item:
+        host: Intelbras_G16_SNMP_ScriptV2
+        key: intelbras.g16.mem
+    - sortorder: '2'
+      color: F63100
+      item:
+        host: Intelbras_G16_SNMP_ScriptV2
+        key: intelbras.g16.temp.switch
+    - sortorder: '3'
+      color: A54F10
+      item:
+        host: Intelbras_G16_SNMP_ScriptV2
+        key: intelbras.g16.temp.gpon
+  - uuid: a0e655ea13ee45748f04ef2e402878aa
+    name: Contadores de ONUs
+    graph_items:
+    - color: 1A7C11
+      item:
+        host: Intelbras_G16_SNMP_ScriptV2
+        key: intelbras.g16.onu.online
+    - sortorder: '1'
+      color: F63100
+      item:
+        host: Intelbras_G16_SNMP_ScriptV2
+        key: intelbras.g16.onu.offline
+    - sortorder: '2'
+      color: 2774A4
+      item:
+        host: Intelbras_G16_SNMP_ScriptV2
+        key: intelbras.g16.onu.total
+  - uuid: cc61c40631c04719b8fba0201d86ccee
+    name: RX médio das ONUs online por PON
+    graph_items:
+    - color: 1A7C11
+      item:
+        host: Intelbras_G16_SNMP_ScriptV2
+        key: 'intelbras_g16_panel_v1.py[pon_rx_avg,{HOST.CONN},{$SNMP_COMMUNITY},1]'
+      sortorder: '0'
+    - color: 2774A4
+      item:
+        host: Intelbras_G16_SNMP_ScriptV2
+        key: 'intelbras_g16_panel_v1.py[pon_rx_avg,{HOST.CONN},{$SNMP_COMMUNITY},2]'
+      sortorder: '1'
+    - color: F63100
+      item:
+        host: Intelbras_G16_SNMP_ScriptV2
+        key: 'intelbras_g16_panel_v1.py[pon_rx_avg,{HOST.CONN},{$SNMP_COMMUNITY},3]'
+      sortorder: '2'
+    - color: A54F10
+      item:
+        host: Intelbras_G16_SNMP_ScriptV2
+        key: 'intelbras_g16_panel_v1.py[pon_rx_avg,{HOST.CONN},{$SNMP_COMMUNITY},4]'
+      sortorder: '3'
+    - color: FC6EA3
+      item:
+        host: Intelbras_G16_SNMP_ScriptV2
+        key: 'intelbras_g16_panel_v1.py[pon_rx_avg,{HOST.CONN},{$SNMP_COMMUNITY},5]'
+      sortorder: '4'
+    - color: 6C59DC
+      item:
+        host: Intelbras_G16_SNMP_ScriptV2
+        key: 'intelbras_g16_panel_v1.py[pon_rx_avg,{HOST.CONN},{$SNMP_COMMUNITY},6]'
+      sortorder: '5'
+    - color: AC8C14
+      item:
+        host: Intelbras_G16_SNMP_ScriptV2
+        key: 'intelbras_g16_panel_v1.py[pon_rx_avg,{HOST.CONN},{$SNMP_COMMUNITY},7]'
+      sortorder: '6'
+    - color: 611F27
+      item:
+        host: Intelbras_G16_SNMP_ScriptV2
+        key: 'intelbras_g16_panel_v1.py[pon_rx_avg,{HOST.CONN},{$SNMP_COMMUNITY},8]'
+      sortorder: '7'
+    - color: F230E0
+      item:
+        host: Intelbras_G16_SNMP_ScriptV2
+        key: 'intelbras_g16_panel_v1.py[pon_rx_avg,{HOST.CONN},{$SNMP_COMMUNITY},9]'
+      sortorder: '8'
+    - color: 5CCD18
+      item:
+        host: Intelbras_G16_SNMP_ScriptV2
+        key: 'intelbras_g16_panel_v1.py[pon_rx_avg,{HOST.CONN},{$SNMP_COMMUNITY},10]'
+      sortorder: '9'
+    - color: BB2A02
+      item:
+        host: Intelbras_G16_SNMP_ScriptV2
+        key: 'intelbras_g16_panel_v1.py[pon_rx_avg,{HOST.CONN},{$SNMP_COMMUNITY},11]'
+      sortorder: '10'
+    - color: 5A2B57
+      item:
+        host: Intelbras_G16_SNMP_ScriptV2
+        key: 'intelbras_g16_panel_v1.py[pon_rx_avg,{HOST.CONN},{$SNMP_COMMUNITY},12]'
+      sortorder: '11'
+    - color: 89ABF8
+      item:
+        host: Intelbras_G16_SNMP_ScriptV2
+        key: 'intelbras_g16_panel_v1.py[pon_rx_avg,{HOST.CONN},{$SNMP_COMMUNITY},13]'
+      sortorder: '12'
+    - color: 7EC25C
+      item:
+        host: Intelbras_G16_SNMP_ScriptV2
+        key: 'intelbras_g16_panel_v1.py[pon_rx_avg,{HOST.CONN},{$SNMP_COMMUNITY},14]'
+      sortorder: '13'
+    - color: '274482'
+      item:
+        host: Intelbras_G16_SNMP_ScriptV2
+        key: 'intelbras_g16_panel_v1.py[pon_rx_avg,{HOST.CONN},{$SNMP_COMMUNITY},15]'
+      sortorder: '14'
+    - color: 2A9D8F
+      item:
+        host: Intelbras_G16_SNMP_ScriptV2
+        key: 'intelbras_g16_panel_v1.py[pon_rx_avg,{HOST.CONN},{$SNMP_COMMUNITY},16]'
+      sortorder: '15'
+  - uuid: 3feaa10931d64d89a934329c68b0b76e
+    name: Quantidade de ONUs online por PON
+    graph_items:
+    - color: 1A7C11
+      item:
+        host: Intelbras_G16_SNMP_ScriptV2
+        key: 'intelbras_g16_panel_v1.py[pon_online,{HOST.CONN},{$SNMP_COMMUNITY},1]'
+      sortorder: '0'
+    - color: 2774A4
+      item:
+        host: Intelbras_G16_SNMP_ScriptV2
+        key: 'intelbras_g16_panel_v1.py[pon_online,{HOST.CONN},{$SNMP_COMMUNITY},2]'
+      sortorder: '1'
+    - color: F63100
+      item:
+        host: Intelbras_G16_SNMP_ScriptV2
+        key: 'intelbras_g16_panel_v1.py[pon_online,{HOST.CONN},{$SNMP_COMMUNITY},3]'
+      sortorder: '2'
+    - color: A54F10
+      item:
+        host: Intelbras_G16_SNMP_ScriptV2
+        key: 'intelbras_g16_panel_v1.py[pon_online,{HOST.CONN},{$SNMP_COMMUNITY},4]'
+      sortorder: '3'
+    - color: FC6EA3
+      item:
+        host: Intelbras_G16_SNMP_ScriptV2
+        key: 'intelbras_g16_panel_v1.py[pon_online,{HOST.CONN},{$SNMP_COMMUNITY},5]'
+      sortorder: '4'
+    - color: 6C59DC
+      item:
+        host: Intelbras_G16_SNMP_ScriptV2
+        key: 'intelbras_g16_panel_v1.py[pon_online,{HOST.CONN},{$SNMP_COMMUNITY},6]'
+      sortorder: '5'
+    - color: AC8C14
+      item:
+        host: Intelbras_G16_SNMP_ScriptV2
+        key: 'intelbras_g16_panel_v1.py[pon_online,{HOST.CONN},{$SNMP_COMMUNITY},7]'
+      sortorder: '6'
+    - color: 611F27
+      item:
+        host: Intelbras_G16_SNMP_ScriptV2
+        key: 'intelbras_g16_panel_v1.py[pon_online,{HOST.CONN},{$SNMP_COMMUNITY},8]'
+      sortorder: '7'
+    - color: F230E0
+      item:
+        host: Intelbras_G16_SNMP_ScriptV2
+        key: 'intelbras_g16_panel_v1.py[pon_online,{HOST.CONN},{$SNMP_COMMUNITY},9]'
+      sortorder: '8'
+    - color: 5CCD18
+      item:
+        host: Intelbras_G16_SNMP_ScriptV2
+        key: 'intelbras_g16_panel_v1.py[pon_online,{HOST.CONN},{$SNMP_COMMUNITY},10]'
+      sortorder: '9'
+    - color: BB2A02
+      item:
+        host: Intelbras_G16_SNMP_ScriptV2
+        key: 'intelbras_g16_panel_v1.py[pon_online,{HOST.CONN},{$SNMP_COMMUNITY},11]'
+      sortorder: '10'
+    - color: 5A2B57
+      item:
+        host: Intelbras_G16_SNMP_ScriptV2
+        key: 'intelbras_g16_panel_v1.py[pon_online,{HOST.CONN},{$SNMP_COMMUNITY},12]'
+      sortorder: '11'
+    - color: 89ABF8
+      item:
+        host: Intelbras_G16_SNMP_ScriptV2
+        key: 'intelbras_g16_panel_v1.py[pon_online,{HOST.CONN},{$SNMP_COMMUNITY},13]'
+      sortorder: '12'
+    - color: 7EC25C
+      item:
+        host: Intelbras_G16_SNMP_ScriptV2
+        key: 'intelbras_g16_panel_v1.py[pon_online,{HOST.CONN},{$SNMP_COMMUNITY},14]'
+      sortorder: '13'
+    - color: '274482'
+      item:
+        host: Intelbras_G16_SNMP_ScriptV2
+        key: 'intelbras_g16_panel_v1.py[pon_online,{HOST.CONN},{$SNMP_COMMUNITY},15]'
+      sortorder: '14'
+    - color: 2A9D8F
+      item:
+        host: Intelbras_G16_SNMP_ScriptV2
+        key: 'intelbras_g16_panel_v1.py[pon_online,{HOST.CONN},{$SNMP_COMMUNITY},16]'
+      sortorder: '15'
