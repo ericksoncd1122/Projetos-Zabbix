@@ -1,0 +1,424 @@
+zabbix_export:
+  version: '7.0'
+  template_groups:
+  - uuid: aa8a18eeef7d482eb83c796d570ee3eb
+    name: Templates/Network devices
+  templates:
+  - uuid: 55fdfaa2aa0a487f9e4e8c95fb33a3c7
+    template: Template Intelbras EPON 4840E SNMP
+    name: Template Intelbras EPON 4840E SNMP
+    description: "Template final em português para Intelbras EPON 4840E via SNMP.\nAjustes finais:\n- Itens padronizados em português.\n- Removidos itens pouco úteis: velocidade de interface, extra state 20/23 e último registro da ONU.\n- ONU status e sinal RX com identificação pelo índice real da ONU.\n- Alerta de interface só dispara quando a interface ficar down e tiver tráfego relevante nas últimas 24h.\n- Alerta de PON só dispara quando a PON estiver down, tiver ONU cadastrada e todas as ONUs ficarem offline,\n  considerando que houve ONU online nas últimas 24h.\n\nCorreção v23:\n- Corrigido o regex dos contadores por PON.\n- Agora os itens \"Total de ONUs\" e \"ONUs online\" contam corretamente as ONUs da PON no walk de status.\nCorreção v24:\n- Adicionado dashboard em estilo resumo da OLT, semelhante ao modelo enviado.\n- Adicionados gráficos para CPU e memória livre (%), memória total e livre, e gráfico por PON com ONUs registradas e ativas.\n- Dashboard organizado em visão geral\
+      \ da OLT + grid das PONs.\nCorreção v25:\n- Dashboard ajustado para ficar no mesmo estilo visual do exemplo enviado.\n- Títulos padronizados para Intelbras 4840e.\n- Gráfico por PON renomeado para o padrão \"PON eponX: ONUs registradas e ativas\".\n- Layout mantido com 2 gráficos no topo e 4 PONs na parte inferior.\nCorreção v26:\n- Todas as dashboards foram consolidadas em um único painel.\n- Layout ajustado para caber tudo em um só lugar, com widgets menores.\n- Mantidos no mesmo painel: visão geral da OLT, PONs, tráfego de interfaces e sinal RX das ONUs."
+    groups:
+    - name: Templates/Network devices
+    macros:
+    - macro: '{$ONU.RX.CRIT}'
+      value: '-27'
+    - macro: '{$ONU.RX.WARN}'
+      value: '-24'
+    - macro: '{$PON.TEMP.WARN}'
+      value: '65'
+    - macro: '{$PON.TEMP.CRIT}'
+      value: '75'
+    - macro: '{$IF.ATIVA.MIN.BPS}'
+      value: '1000000'
+    valuemaps:
+    - uuid: 2d40f3c8cea5495c99653a143f83b034
+      name: Intelbras EPON ONU Status
+      mappings:
+      - value: '0'
+        newvalue: Offline
+      - value: '1'
+        newvalue: Online
+    - uuid: 112aa1664bc14914a87984675bbf2e3e
+      name: Intelbras EPON PON State
+      mappings:
+      - value: '1'
+        newvalue: Down
+      - value: '2'
+        newvalue: Up
+    items:
+    - uuid: 83609ffaa73c4a63b5b222b6ae55d3ad
+      name: Sistema - Nome do equipamento
+      type: SNMP_AGENT
+      snmp_oid: 1.3.6.1.2.1.1.5.0
+      key: system.sysname
+      delay: 10m
+      history: 90d
+      value_type: CHAR
+      trends: '0'
+    - uuid: a0f141cb77124fc2a33638b115988795
+      name: Sistema - Descrição do equipamento
+      type: SNMP_AGENT
+      snmp_oid: 1.3.6.1.2.1.1.1.0
+      key: system.sysdescr
+      delay: 10m
+      history: 90d
+      value_type: TEXT
+      trends: '0'
+    - uuid: 3193ce393c7149e4a83d58064d88d21c
+      name: Sistema - Uptime
+      type: SNMP_AGENT
+      snmp_oid: 1.3.6.1.2.1.1.3.0
+      key: system.uptime
+      delay: 2m
+      units: uptime
+      history: 90d
+      preprocessing:
+      - type: MULTIPLIER
+        parameters:
+        - '0.01'
+      description: sysUpTime retorna TimeTicks (centésimos de segundo); o multiplicador 0.01 converte para segundos antes de usar a unidade uptime.
+    - uuid: 2cb4519da93a46aa91e8704c32ec671c
+      name: Sistema - CPU ociosa
+      type: SNMP_AGENT
+      snmp_oid: 1.3.6.1.4.1.13464.1.2.1.1.2.11.0
+      key: system.cpu.idle
+      delay: 2m
+      units: '%'
+    - uuid: de2c4ee2884141a790c17ceab20d2880
+      name: Sistema - CPU em uso
+      type: CALCULATED
+      key: system.cpu.used
+      delay: 2m
+      params: 100-last(//system.cpu.idle)
+      units: '%'
+      triggers:
+      - uuid: f0e86daead2f4d7f91b2573b6ff0e1e1
+        expression: last(/Template Intelbras EPON 4840E SNMP/system.cpu.used)>90
+        name: OLT com uso de CPU acima de 90%
+        priority: HIGH
+    - uuid: f60f9c33b7294ec99b6b8f992dec6560
+      name: Sistema - Memória total
+      type: SNMP_AGENT
+      snmp_oid: 1.3.6.1.4.1.13464.1.2.1.1.2.12.0
+      key: system.mem.total
+      delay: 5m
+      units: MB
+    - uuid: cf0d607bced84a1d9294e2f656086b4e
+      name: Sistema - Memória livre
+      type: SNMP_AGENT
+      snmp_oid: 1.3.6.1.4.1.13464.1.2.1.1.2.13.0
+      key: system.mem.free
+      delay: 5m
+      units: MB
+    - uuid: 66144ab4eec6407eb7bc2111d64b5b11
+      name: Sistema - Memória em uso (%)
+      type: CALCULATED
+      key: system.mem.used.pct
+      delay: 5m
+      params: 100*(last(//system.mem.total)-last(//system.mem.free))/last(//system.mem.total)
+      units: '%'
+      triggers:
+      - uuid: 2d869e41b67940a5b3f52f29f8e35b48
+        expression: last(/Template Intelbras EPON 4840E SNMP/system.mem.used.pct)>90
+        name: OLT com uso de memória acima de 90%
+        priority: HIGH
+    - uuid: 7389aa22e5c54d9d825cefcb84aff75c
+      name: ONU - Tabela bruta de status
+      type: SNMP_AGENT
+      snmp_oid: walk[1.3.6.1.4.1.13464.1.13.3.1.1.4.0]
+      key: onu.status.walk
+      delay: 5m
+      history: '0'
+      trends: '0'
+      value_type: TEXT
+      description: Coleta bruta da tabela de status das ONUs. Usado como item mestre para contadores por PON.
+    discovery_rules:
+    - uuid: e711820c2f78415e92e53157dfa3edf2
+      name: Descoberta de interfaces
+      type: SNMP_AGENT
+      key: net.if.discovery
+      delay: 1h
+      snmp_oid: discovery[{#IFDESCR},1.3.6.1.2.1.2.2.1.2,{#IFNAME},1.3.6.1.2.1.31.1.1.1.1,{#IFALIAS},1.3.6.1.2.1.31.1.1.1.18]
+      item_prototypes:
+      - uuid: f324f5ea51e54f2796295e2dc78b5a50
+        name: Interface {#IFNAME} - Estado operacional
+        type: SNMP_AGENT
+        snmp_oid: 1.3.6.1.2.1.2.2.1.8.{#SNMPINDEX}
+        key: if.estado[{#SNMPINDEX}]
+        delay: 2m
+        trigger_prototypes:
+        - uuid: 64c82fbba163450fb28da6f47c31f0ab
+          expression: last(/Template Intelbras EPON 4840E SNMP/if.estado[{#SNMPINDEX}])<>1 and (max(/Template Intelbras EPON 4840E SNMP/if.trafego.entrada[{#SNMPINDEX}],24h)>{$IF.ATIVA.MIN.BPS} or max(/Template Intelbras EPON 4840E SNMP/if.trafego.saida[{#SNMPINDEX}],24h)>{$IF.ATIVA.MIN.BPS})
+          name: Interface {#IFNAME} down após tráfego nas últimas 24h
+          priority: DISASTER
+      - uuid: d7f23e6a56964f76adda935c16d20ca3
+        name: Interface {#IFNAME} - Tráfego de entrada
+        type: SNMP_AGENT
+        snmp_oid: 1.3.6.1.2.1.31.1.1.1.6.{#SNMPINDEX}
+        key: if.trafego.entrada[{#SNMPINDEX}]
+        delay: 2m
+        units: bps
+        value_type: FLOAT
+        preprocessing:
+        - type: CHANGE_PER_SECOND
+          parameters:
+          - ''
+        - type: MULTIPLIER
+          parameters:
+          - '8'
+        description: Taxa de tráfego de entrada em bits por segundo.
+      - uuid: 26ea10ff23c0454cad1f165dfd781b77
+        name: Interface {#IFNAME} - Tráfego de saída
+        type: SNMP_AGENT
+        snmp_oid: 1.3.6.1.2.1.31.1.1.1.10.{#SNMPINDEX}
+        key: if.trafego.saida[{#SNMPINDEX}]
+        delay: 2m
+        units: bps
+        value_type: FLOAT
+        preprocessing:
+        - type: CHANGE_PER_SECOND
+          parameters:
+          - ''
+        - type: MULTIPLIER
+          parameters:
+          - '8'
+        description: Taxa de tráfego de saída em bits por segundo.
+      graph_prototypes:
+      - uuid: d46a2ae96632493bbc5082a40a1bd0e5
+        name: Interface {#IFNAME} - Tráfego
+        graph_items:
+        - drawtype: GRADIENT_LINE
+          color: 1A7C11
+          item:
+            host: Template Intelbras EPON 4840E SNMP
+            key: if.trafego.entrada[{#SNMPINDEX}]
+        - drawtype: GRADIENT_LINE
+          color: F63100
+          item:
+            host: Template Intelbras EPON 4840E SNMP
+            key: if.trafego.saida[{#SNMPINDEX}]
+    - uuid: d42caac043dc4fba91814b3a2d9a2ee7
+      name: Descoberta de PONs
+      type: SNMP_AGENT
+      key: intelbras.pon.discovery
+      delay: 6h
+      snmp_oid: discovery[{#PONID},1.3.6.1.4.1.13464.1.13.2.1.1.2.0]
+      item_prototypes:
+      - uuid: c540a6a2d10048fb87784e96eee412b0
+        name: PON {#PONID} - Estado operacional
+        type: SNMP_AGENT
+        snmp_oid: 1.3.6.1.4.1.13464.1.13.2.1.1.4.0.{#SNMPINDEX}
+        key: pon.estado[{#SNMPINDEX}]
+        delay: 2m
+        valuemap:
+          name: Intelbras EPON PON State
+        trigger_prototypes:
+        - uuid: 3cba57d0b53f41219049f898e5053853
+          expression: last(/Template Intelbras EPON 4840E SNMP/pon.estado[{#SNMPINDEX}])=1 and last(/Template Intelbras EPON 4840E SNMP/pon.onu.total[{#SNMPINDEX}])>0 and max(/Template Intelbras EPON 4840E SNMP/pon.onu.online[{#SNMPINDEX}],24h)>0 and last(/Template Intelbras EPON 4840E SNMP/pon.onu.online[{#SNMPINDEX}])=0
+          name: PON {#PONID} down com todas as ONUs offline - possível falta de energia ou rompimento
+          priority: DISASTER
+      - uuid: 9436221a1e494cbf8bc957eb19e07f4f
+        name: PON {#PONID} - Total de ONUs
+        type: DEPENDENT
+        key: pon.onu.total[{#SNMPINDEX}]
+        delay: '0'
+        master_item:
+          key: onu.status.walk
+        preprocessing:
+        - type: JAVASCRIPT
+          parameters:
+          - 'var pon = ''{#PONID}'';
+
+            var text = String(value || '''');
+
+            var re = new RegExp(''\\.1\\.3\\.6\\.1\\.4\\.1\\.13464\\.1\\.13\\.3\\.1\\.1\\.4\\.0\\.'' + pon + ''\\.\\d+\\s*=\\s*INTEGER:\\s*[01]\\b'', ''g'');
+
+            var m = text.match(re);
+
+            return m ? m.length : 0;'
+        description: Conta quantas ONUs existem nesta PON a partir do walk mestre de status.
+      - uuid: 0a1ac3fcb7284135be0f74b173d1650a
+        name: PON {#PONID} - ONUs online
+        type: DEPENDENT
+        key: pon.onu.online[{#SNMPINDEX}]
+        delay: '0'
+        master_item:
+          key: onu.status.walk
+        preprocessing:
+        - type: JAVASCRIPT
+          parameters:
+          - 'var pon = ''{#PONID}'';
+
+            var text = String(value || '''');
+
+            var re = new RegExp(''\\.1\\.3\\.6\\.1\\.4\\.1\\.13464\\.1\\.13\\.3\\.1\\.1\\.4\\.0\\.'' + pon + ''\\.\\d+\\s*=\\s*INTEGER:\\s*1\\b'', ''g'');
+
+            var m = text.match(re);
+
+            return m ? m.length : 0;'
+        description: Conta quantas ONUs online existem nesta PON a partir do walk mestre de status.
+      graph_prototypes:
+      - uuid: 4b88c8686f724d379557a8ee574f5f75
+        name: 'PON epon{#PONID}: ONUs registradas e ativas'
+        graph_items:
+        - drawtype: GRADIENT_LINE
+          color: 1A7C11
+          item:
+            host: Template Intelbras EPON 4840E SNMP
+            key: pon.onu.total[{#SNMPINDEX}]
+        - drawtype: GRADIENT_LINE
+          color: F63100
+          item:
+            host: Template Intelbras EPON 4840E SNMP
+            key: pon.onu.online[{#SNMPINDEX}]
+    - uuid: fcfe52885eb0479193d09549961e05bc
+      name: Descoberta de ONUs
+      type: SNMP_AGENT
+      key: intelbras.onu.discovery
+      delay: 2h
+      snmp_oid: discovery[{#ONUSTATUS},1.3.6.1.4.1.13464.1.13.3.1.1.4.0]
+      item_prototypes:
+      - uuid: 324a05eda24b42c3ac19838324afb84a
+        name: ONU {#SNMPINDEX} - Estado
+        type: SNMP_AGENT
+        snmp_oid: 1.3.6.1.4.1.13464.1.13.3.1.1.4.0.{#SNMPINDEX}
+        key: onu.estado[{#SNMPINDEX}]
+        delay: 2m
+        valuemap:
+          name: Intelbras EPON ONU Status
+      graph_prototypes: []
+    - uuid: db7990290ed54e458c46a8cc59189538
+      name: Descoberta de sinal RX das ONUs
+      type: SNMP_AGENT
+      key: intelbras.onu.rx.discovery
+      delay: 2h
+      snmp_oid: discovery[{#RXVALUE},1.3.6.1.4.1.13464.1.13.3.3.1.8.0]
+      item_prototypes:
+      - uuid: 07df8358babe4cba9ad604a97e20c6e8
+        name: ONU {#SNMPINDEX} - Sinal RX
+        type: SNMP_AGENT
+        snmp_oid: 1.3.6.1.4.1.13464.1.13.3.3.1.8.0.{#SNMPINDEX}
+        key: onu.sinal.rx[{#SNMPINDEX}]
+        delay: 10m
+        value_type: FLOAT
+        units: dBm
+        preprocessing:
+        - type: REGEX
+          parameters:
+          - (-?[0-9]+(?:\.[0-9]+)?)
+          - \1
+          error_handler: DISCARD_VALUE
+        description: Sinal óptico RX da ONU em dBm.
+      graph_prototypes:
+      - uuid: 2b1af732b982473492e91013fd5c1c14
+        name: ONU {#SNMPINDEX} - Sinal RX
+        graph_items:
+        - drawtype: GRADIENT_LINE
+          color: 1A7C11
+          item:
+            host: Template Intelbras EPON 4840E SNMP
+            key: onu.sinal.rx[{#SNMPINDEX}]
+    dashboards:
+    - uuid: 8e258730518e4fef96c0d004df143177
+      name: Intelbras 4840e - Painel único
+      pages:
+      - name: Tudo em um
+        widgets:
+        - type: graph
+          x: '0'
+          y: '0'
+          width: '36'
+          height: '6'
+          fields:
+          - type: GRAPH
+            name: graphid.0
+            value:
+              host: Template Intelbras EPON 4840E SNMP
+              name: 'Intelbras 4840e: CPU e memória livre (%)'
+          - type: STRING
+            name: reference
+            value: V26A1
+        - type: graph
+          x: '36'
+          y: '0'
+          width: '36'
+          height: '6'
+          fields:
+          - type: GRAPH
+            name: graphid.0
+            value:
+              host: Template Intelbras EPON 4840E SNMP
+              name: 'Intelbras 4840e: Memória total e livre'
+          - type: STRING
+            name: reference
+            value: V26A2
+        - type: graphprototype
+          x: '0'
+          y: '6'
+          width: '72'
+          height: '8'
+          fields:
+          - type: INTEGER
+            name: columns
+            value: '4'
+          - type: GRAPH_PROTOTYPE
+            name: graphid.0
+            value:
+              host: Template Intelbras EPON 4840E SNMP
+              name: 'PON epon{#PONID}: ONUs registradas e ativas'
+          - type: STRING
+            name: reference
+            value: V26A3
+        - type: graphprototype
+          x: '0'
+          y: '14'
+          width: '72'
+          height: '12'
+          fields:
+          - type: INTEGER
+            name: columns
+            value: '6'
+          - type: GRAPH_PROTOTYPE
+            name: graphid.0
+            value:
+              host: Template Intelbras EPON 4840E SNMP
+              name: Interface {#IFNAME} - Tráfego
+          - type: STRING
+            name: reference
+            value: V26A4
+        - type: graphprototype
+          x: '0'
+          y: '26'
+          width: '72'
+          height: '12'
+          fields:
+          - type: INTEGER
+            name: columns
+            value: '6'
+          - type: GRAPH_PROTOTYPE
+            name: graphid.0
+            value:
+              host: Template Intelbras EPON 4840E SNMP
+              name: ONU {#SNMPINDEX} - Sinal RX
+          - type: STRING
+            name: reference
+            value: V26A5
+  graphs:
+  - uuid: bcb6cc20751347568b33ba478966a7e4
+    name: 'Intelbras 4840e: CPU e memória livre (%)'
+    graph_items:
+    - drawtype: GRADIENT_LINE
+      color: 1A7C11
+      item:
+        host: Template Intelbras EPON 4840E SNMP
+        key: system.cpu.used
+    - drawtype: GRADIENT_LINE
+      color: F63100
+      item:
+        host: Template Intelbras EPON 4840E SNMP
+        key: system.mem.used.pct
+  - uuid: 2dfb5bfd0d5b4ba2bcb9243be2b20290
+    name: 'Intelbras 4840e: Memória total e livre'
+    graph_items:
+    - drawtype: GRADIENT_LINE
+      color: 1A7C11
+      item:
+        host: Template Intelbras EPON 4840E SNMP
+        key: system.mem.total
+    - drawtype: GRADIENT_LINE
+      color: F63100
+      item:
+        host: Template Intelbras EPON 4840E SNMP
+        key: system.mem.free
