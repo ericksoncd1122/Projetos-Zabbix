@@ -1,0 +1,3396 @@
+zabbix_export:
+  version: '7.0'
+  template_groups:
+  - uuid: bf9d8140c8204654b2297cccfd5e0c53
+    name: Templates/Network devices
+  templates:
+  - uuid: 0c34e3ff1058468abb87ad3f464aa997
+    template: Template - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24 Unificado
+    name: Template - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24 Unificado
+    description: 'Template reformulado para monitoramento de OLT Intelbras FiberHome
+      AN6001-G16 no Zabbix 7.0.
+
+
+      Baseado nos modelos anexados pelo usuário, com padronização dos nomes em português,
+      alertas mais amigáveis, gráficos para itens numéricos/protótipos e dashboard
+      principal.
+
+
+      Inclui coletas SNMP de chassi, cards, CPU/memória, PON, interfaces via IF-MIB
+      e sinal óptico de ONUs.
+
+
+      As contagens de ONUs por status na PON usam script externo ''ponfh'', que consulta
+      a própria OLT via SNMP diretamente, sem dependência de banco BeeSoft/MySQL.
+
+
+
+      V2 SNMP direto: script ponfh com cache local opcional para reduzir carga na
+      OLT. A coleta continua dinâmica usando a macro {$OLT.SNMP.IP} e macros SNMP,
+      sem IP/community fixos.
+
+
+      Versão V3.2:
+
+      - Intervalos de descoberta reduzidos para facilitar os primeiros testes no Zabbix.
+
+      - Template independente do template antigo de interfaces externas discovery_interfaces.py.
+
+      - Manter somente este template no host, ou remover/desvincular templates antigos
+      que usem discovery_interfaces.py.
+
+
+
+      Versão V5.3:
+
+      - Corrige referência interna de nome do template para evitar falha silenciosa
+      na criação dos itens descobertos.
+
+      - A descoberta de portas PON passa a usar o script externo ponfh --lld, garantindo
+      PON no formato SLOT/PON, exemplo 1/4.
+
+      - Remove dependência de {#SNMPINDEX} na descoberta de PON para os itens de contagem
+      de ONUs.
+
+      - Mantém o projeto dinâmico para qualquer OLT via macro {$OLT.SNMP.IP} e macros.
+
+
+
+      Correção V5.4: uso de {$OLT.SNMP.IP}, remoção do diagnóstico ativo e ajuste
+      de alerta de interfaces somente com tráfego recente.
+
+
+      Versão V5.4:
+
+      - Remove a coleta ativa de ventoinhas por OID fixo, pois em algumas AN6001-G16
+      o índice de fan não existe e gera "No Such Instance".
+
+      - Remove o item ativo de diagnóstico do Zabbix; o resumo continua disponível
+      pelo script ponfh --summary no terminal.
+
+      - Ajusta alerta de interface down para disparar somente em portas que tiveram
+      tráfego nas últimas 24h, evitando alertas em PON/SFP/Ethernet não utilizadas.
+
+      - Mantém sinal óptico das ONUs via OID de medição em lote; para valores diferentes
+      de zero, a OLT precisa estar com mib stats enable.
+
+
+
+      V5.5: desativados alertas de RX baixo/crítico por padrão; adicionados itens
+      de percentual de clientes online/offline por PON; novos alertas de queda de
+      30% e 50% de clientes por PON; alerta de PON down por LOS total com mensagem
+      de possível rompimento; alerta de região sem energia/clientes off por falta
+      de energia; alertas de link down de interface em prioridade alta; filtros de
+      descoberta de cards/gerência flexibilizados para evitar dashboard vazio quando
+      a OLT retorna cardtype diferente.
+
+
+      V5.14: regra de descoberta de PON com chave nova (--lld-v514) para forçar a
+      recriação dos itens e triggers de PON; mantidos alertas de rompimento por LOS
+      total, região sem energia por status 4, queda parcial de 30% e 50%, e dashboard
+      organizado.
+
+
+      V5.24 Unificado: baseado na V5.14, mantendo a descoberta dinâmica principal.
+      Inclui, no mesmo template, itens/triggers estáticos somente para os 2 alertas
+      críticos por PON: possível rompimento e região sem energia.
+
+
+      Ajustes V5.24: interfaces PON não são mais descobertas pelo IF-MIB por padrão
+      para evitar falsos alertas de link down em PON sem uso; PON passa a ser alertada
+      pelos contadores de ONUs via ponfh. Descoberta individual de ONUs passa a considerar
+      somente ONUs online por padrão, evitando itens ópticos/MAC/serial sem OID para
+      ONUs sem dados/offline.'
+    groups:
+    - name: Templates/Network devices
+    items:
+    - uuid: 51e9a83d3aff41afa6256ef7c6d77691
+      name: 'Chassi: descrição do equipamento'
+      type: SNMP_AGENT
+      snmp_oid: 1.3.6.1.2.1.1.1.0
+      key: system.descricao
+      delay: 1h
+      history: 30d
+      trends: '0'
+      value_type: CHAR
+      tags:
+      - tag: componente
+        value: Chassi
+      - tag: item
+        value: Descrição
+    - uuid: 79fbbf633ae7489f869ab8ad2fb025d7
+      name: 'Chassi: temperatura da OLT'
+      type: SNMP_AGENT
+      snmp_oid: .1.3.6.1.4.1.5875.800.3.9.4.5.0
+      key: chassi.temperatura
+      delay: 1m
+      history: 7d
+      trends: 30d
+      value_type: FLOAT
+      units: °C
+      tags:
+      - tag: componente
+        value: Chassi
+      - tag: item
+        value: Temperatura
+      triggers:
+      - uuid: 3d0a819774914adcb4809aaa8109158a
+        expression: avg(/Template - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24
+          Unificado/chassi.temperatura,5m)>{$TEMP.WARN}
+        name: 'OLT: temperatura alta acima de {$TEMP.WARN}°C'
+        priority: WARNING
+        manual_close: 'YES'
+        recovery_mode: RECOVERY_EXPRESSION
+        recovery_expression: avg(/Template - OLT Intelbras FiberHome AN6001-G16 SNMP Direto
+          V5.24 Unificado/chassi.temperatura,5m)<({$TEMP.WARN}-3)
+        description: Alerta preventivo para temperatura elevada da OLT.
+      - uuid: 3a34a9a9640d46c084bd960be1427888
+        expression: avg(/Template - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24
+          Unificado/chassi.temperatura,5m)>{$TEMP.CRIT}
+        name: 'OLT: temperatura crítica acima de {$TEMP.CRIT}°C'
+        priority: HIGH
+        manual_close: 'YES'
+        recovery_mode: RECOVERY_EXPRESSION
+        recovery_expression: avg(/Template - OLT Intelbras FiberHome AN6001-G16 SNMP Direto
+          V5.24 Unificado/chassi.temperatura,5m)<({$TEMP.CRIT}-3)
+        description: Alerta crítico de temperatura elevada da OLT.
+    - uuid: 89217551e9404c0f976c181437490ace
+      name: 'Chassi: tempo ligado'
+      type: SNMP_AGENT
+      snmp_oid: 1.3.6.1.2.1.1.3.0
+      key: system.uptime
+      delay: 1m
+      history: 7d
+      trends: 30d
+      units: uptime
+      preprocessing:
+      - type: MULTIPLIER
+        parameters:
+        - '0.01'
+      tags:
+      - tag: componente
+        value: Chassi
+      - tag: item
+        value: Uptime
+    - uuid: dcf5e70140cb46e8994b3a9155fa2672
+      name: 'PON 1/1: cache JSON para alertas estáticos'
+      type: EXTERNAL
+      key: ponfh["1_1","json","{$OLT.SNMP.IP}","{$SNMP_COMMUNITY}","{$SNMP_PORT}","{$SNMP_TIMEOUT}","{$SNMP_RETRIES}","{$PONFH.CACHE_TTL}"]
+      delay: 2m
+      history: 1d
+      trends: '0'
+      value_type: TEXT
+      tags:
+      - &id001
+        tag: componente
+        value: PON
+      - &id002
+        tag: pon
+        value: '1_1'
+      - tag: item
+        value: cache_json
+      - tag: modo
+        value: alerta_estatico
+    - uuid: 089280599e894571911fc9abedb8aef7
+      name: 'PON 1/1: total de ONUs autorizadas para alerta'
+      type: DEPENDENT
+      key: pon.alert.total.1_1
+      delay: '0'
+      history: 90d
+      trends: 365d
+      value_type: UNSIGNED
+      master_item:
+        key: ponfh["1_1","json","{$OLT.SNMP.IP}","{$SNMP_COMMUNITY}","{$SNMP_PORT}","{$SNMP_TIMEOUT}","{$SNMP_RETRIES}","{$PONFH.CACHE_TTL}"]
+      preprocessing:
+      - type: JSONPATH
+        parameters:
+        - $.total
+      tags:
+      - *id001
+      - *id002
+      - tag: item
+        value: total
+      - tag: modo
+        value: alerta_estatico
+      triggers:
+      - uuid: 53757cd1e8924fe583b27b4a7948917f
+        name: PON 1/1 down, possível rompimento
+        expression: last(/Template - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24
+          Unificado/pon.alert.total.1_1)>={$ONU.PON.MIN.CLIENTES} and last(/WNET -
+          OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24 Unificado/pon.alert.los.1_1)=last(/WNET
+          - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24 Unificado/pon.alert.total.1_1)
+        priority: DISASTER
+        manual_close: 'YES'
+        description: Dispara quando todas as ONUs autorizadas da PON estão em LOS.
+          Indica possível rompimento, problema físico na fibra, splitter, CTO ou porta
+          PON.
+        tags:
+        - tag: class
+          value: network
+        - tag: evento
+          value: rompimento
+        - tag: pon
+          value: '1_1'
+    - uuid: b0dfc0afc4634732aa96857185ba3e7f
+      name: 'PON 1/1: ONUs em LOS para alerta'
+      type: DEPENDENT
+      key: pon.alert.los.1_1
+      delay: '0'
+      history: 90d
+      trends: 365d
+      value_type: UNSIGNED
+      master_item:
+        key: ponfh["1_1","json","{$OLT.SNMP.IP}","{$SNMP_COMMUNITY}","{$SNMP_PORT}","{$SNMP_TIMEOUT}","{$SNMP_RETRIES}","{$PONFH.CACHE_TTL}"]
+      preprocessing:
+      - type: JSONPATH
+        parameters:
+        - $.los
+      tags:
+      - *id001
+      - *id002
+      - tag: item
+        value: los
+      - tag: modo
+        value: alerta_estatico
+    - uuid: 666bbac97891419b9d78166ea8dec504
+      name: 'PON 1/1: ONUs sem energia para alerta'
+      type: DEPENDENT
+      key: pon.alert.energy.1_1
+      delay: '0'
+      history: 90d
+      trends: 365d
+      value_type: UNSIGNED
+      master_item:
+        key: ponfh["1_1","json","{$OLT.SNMP.IP}","{$SNMP_COMMUNITY}","{$SNMP_PORT}","{$SNMP_TIMEOUT}","{$SNMP_RETRIES}","{$PONFH.CACHE_TTL}"]
+      preprocessing:
+      - type: JSONPATH
+        parameters:
+        - $.sem_energia
+      tags:
+      - *id001
+      - *id002
+      - tag: item
+        value: sem_energia
+      - tag: modo
+        value: alerta_estatico
+      triggers:
+      - uuid: 39708d6186654887b9710be815f8bdb7
+        name: 'PON 1/1: região sem energia, clientes off por falta de energia'
+        expression: last(/Template - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24
+          Unificado/pon.alert.total.1_1)>={$ONU.PON.MIN.CLIENTES} and last(/WNET -
+          OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24 Unificado/pon.alert.energy.1_1)>={$ONU.ENERGIA.REGIAO.MIN}
+        priority: HIGH
+        manual_close: 'YES'
+        description: Dispara quando várias ONUs da mesma PON entram em Dying Gasp/sem
+          energia. Indica provável falta de energia na região/área atendida pela PON.
+        tags:
+        - tag: class
+          value: power
+        - tag: evento
+          value: sem_energia
+        - tag: pon
+          value: '1_1'
+    - uuid: d52885f923364f0b96637d021b902e84
+      name: 'PON 1/2: cache JSON para alertas estáticos'
+      type: EXTERNAL
+      key: ponfh["1_2","json","{$OLT.SNMP.IP}","{$SNMP_COMMUNITY}","{$SNMP_PORT}","{$SNMP_TIMEOUT}","{$SNMP_RETRIES}","{$PONFH.CACHE_TTL}"]
+      delay: 2m
+      history: 1d
+      trends: '0'
+      value_type: TEXT
+      tags:
+      - &id003
+        tag: componente
+        value: PON
+      - &id004
+        tag: pon
+        value: '1_2'
+      - tag: item
+        value: cache_json
+      - tag: modo
+        value: alerta_estatico
+    - uuid: 3a64f7c399a844e3b3e7f3763700ccfb
+      name: 'PON 1/2: total de ONUs autorizadas para alerta'
+      type: DEPENDENT
+      key: pon.alert.total.1_2
+      delay: '0'
+      history: 90d
+      trends: 365d
+      value_type: UNSIGNED
+      master_item:
+        key: ponfh["1_2","json","{$OLT.SNMP.IP}","{$SNMP_COMMUNITY}","{$SNMP_PORT}","{$SNMP_TIMEOUT}","{$SNMP_RETRIES}","{$PONFH.CACHE_TTL}"]
+      preprocessing:
+      - type: JSONPATH
+        parameters:
+        - $.total
+      tags:
+      - *id003
+      - *id004
+      - tag: item
+        value: total
+      - tag: modo
+        value: alerta_estatico
+      triggers:
+      - uuid: b0b03661e9794425bc525a20ccbba502
+        name: PON 1/2 down, possível rompimento
+        expression: last(/Template - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24
+          Unificado/pon.alert.total.1_2)>={$ONU.PON.MIN.CLIENTES} and last(/WNET -
+          OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24 Unificado/pon.alert.los.1_2)=last(/WNET
+          - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24 Unificado/pon.alert.total.1_2)
+        priority: DISASTER
+        manual_close: 'YES'
+        description: Dispara quando todas as ONUs autorizadas da PON estão em LOS.
+          Indica possível rompimento, problema físico na fibra, splitter, CTO ou porta
+          PON.
+        tags:
+        - tag: class
+          value: network
+        - tag: evento
+          value: rompimento
+        - tag: pon
+          value: '1_2'
+    - uuid: 2ef5ea32498f49d7a7a121a1251bbbe9
+      name: 'PON 1/2: ONUs em LOS para alerta'
+      type: DEPENDENT
+      key: pon.alert.los.1_2
+      delay: '0'
+      history: 90d
+      trends: 365d
+      value_type: UNSIGNED
+      master_item:
+        key: ponfh["1_2","json","{$OLT.SNMP.IP}","{$SNMP_COMMUNITY}","{$SNMP_PORT}","{$SNMP_TIMEOUT}","{$SNMP_RETRIES}","{$PONFH.CACHE_TTL}"]
+      preprocessing:
+      - type: JSONPATH
+        parameters:
+        - $.los
+      tags:
+      - *id003
+      - *id004
+      - tag: item
+        value: los
+      - tag: modo
+        value: alerta_estatico
+    - uuid: 12d72ec469394c599c83bf6e4a81ada1
+      name: 'PON 1/2: ONUs sem energia para alerta'
+      type: DEPENDENT
+      key: pon.alert.energy.1_2
+      delay: '0'
+      history: 90d
+      trends: 365d
+      value_type: UNSIGNED
+      master_item:
+        key: ponfh["1_2","json","{$OLT.SNMP.IP}","{$SNMP_COMMUNITY}","{$SNMP_PORT}","{$SNMP_TIMEOUT}","{$SNMP_RETRIES}","{$PONFH.CACHE_TTL}"]
+      preprocessing:
+      - type: JSONPATH
+        parameters:
+        - $.sem_energia
+      tags:
+      - *id003
+      - *id004
+      - tag: item
+        value: sem_energia
+      - tag: modo
+        value: alerta_estatico
+      triggers:
+      - uuid: 7815fba48b614f74af99983dac846445
+        name: 'PON 1/2: região sem energia, clientes off por falta de energia'
+        expression: last(/Template - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24
+          Unificado/pon.alert.total.1_2)>={$ONU.PON.MIN.CLIENTES} and last(/WNET -
+          OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24 Unificado/pon.alert.energy.1_2)>={$ONU.ENERGIA.REGIAO.MIN}
+        priority: HIGH
+        manual_close: 'YES'
+        description: Dispara quando várias ONUs da mesma PON entram em Dying Gasp/sem
+          energia. Indica provável falta de energia na região/área atendida pela PON.
+        tags:
+        - tag: class
+          value: power
+        - tag: evento
+          value: sem_energia
+        - tag: pon
+          value: '1_2'
+    - uuid: 79b0537825134e3fa6f7b60c00ff86f1
+      name: 'PON 1/3: cache JSON para alertas estáticos'
+      type: EXTERNAL
+      key: ponfh["1_3","json","{$OLT.SNMP.IP}","{$SNMP_COMMUNITY}","{$SNMP_PORT}","{$SNMP_TIMEOUT}","{$SNMP_RETRIES}","{$PONFH.CACHE_TTL}"]
+      delay: 2m
+      history: 1d
+      trends: '0'
+      value_type: TEXT
+      tags:
+      - &id005
+        tag: componente
+        value: PON
+      - &id006
+        tag: pon
+        value: '1_3'
+      - tag: item
+        value: cache_json
+      - tag: modo
+        value: alerta_estatico
+    - uuid: db529ca69bf241539f6fbe5d2be1c232
+      name: 'PON 1/3: total de ONUs autorizadas para alerta'
+      type: DEPENDENT
+      key: pon.alert.total.1_3
+      delay: '0'
+      history: 90d
+      trends: 365d
+      value_type: UNSIGNED
+      master_item:
+        key: ponfh["1_3","json","{$OLT.SNMP.IP}","{$SNMP_COMMUNITY}","{$SNMP_PORT}","{$SNMP_TIMEOUT}","{$SNMP_RETRIES}","{$PONFH.CACHE_TTL}"]
+      preprocessing:
+      - type: JSONPATH
+        parameters:
+        - $.total
+      tags:
+      - *id005
+      - *id006
+      - tag: item
+        value: total
+      - tag: modo
+        value: alerta_estatico
+      triggers:
+      - uuid: ae8dba44359e42b298fe14d52c5a703e
+        name: PON 1/3 down, possível rompimento
+        expression: last(/Template - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24
+          Unificado/pon.alert.total.1_3)>={$ONU.PON.MIN.CLIENTES} and last(/WNET -
+          OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24 Unificado/pon.alert.los.1_3)=last(/WNET
+          - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24 Unificado/pon.alert.total.1_3)
+        priority: DISASTER
+        manual_close: 'YES'
+        description: Dispara quando todas as ONUs autorizadas da PON estão em LOS.
+          Indica possível rompimento, problema físico na fibra, splitter, CTO ou porta
+          PON.
+        tags:
+        - tag: class
+          value: network
+        - tag: evento
+          value: rompimento
+        - tag: pon
+          value: '1_3'
+    - uuid: d39ab51b99e14ec0a11e08759ff9dbc3
+      name: 'PON 1/3: ONUs em LOS para alerta'
+      type: DEPENDENT
+      key: pon.alert.los.1_3
+      delay: '0'
+      history: 90d
+      trends: 365d
+      value_type: UNSIGNED
+      master_item:
+        key: ponfh["1_3","json","{$OLT.SNMP.IP}","{$SNMP_COMMUNITY}","{$SNMP_PORT}","{$SNMP_TIMEOUT}","{$SNMP_RETRIES}","{$PONFH.CACHE_TTL}"]
+      preprocessing:
+      - type: JSONPATH
+        parameters:
+        - $.los
+      tags:
+      - *id005
+      - *id006
+      - tag: item
+        value: los
+      - tag: modo
+        value: alerta_estatico
+    - uuid: 5e20d346aa904637bdacb66182335ae9
+      name: 'PON 1/3: ONUs sem energia para alerta'
+      type: DEPENDENT
+      key: pon.alert.energy.1_3
+      delay: '0'
+      history: 90d
+      trends: 365d
+      value_type: UNSIGNED
+      master_item:
+        key: ponfh["1_3","json","{$OLT.SNMP.IP}","{$SNMP_COMMUNITY}","{$SNMP_PORT}","{$SNMP_TIMEOUT}","{$SNMP_RETRIES}","{$PONFH.CACHE_TTL}"]
+      preprocessing:
+      - type: JSONPATH
+        parameters:
+        - $.sem_energia
+      tags:
+      - *id005
+      - *id006
+      - tag: item
+        value: sem_energia
+      - tag: modo
+        value: alerta_estatico
+      triggers:
+      - uuid: 77c1967758764296a9bfda066055b42d
+        name: 'PON 1/3: região sem energia, clientes off por falta de energia'
+        expression: last(/Template - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24
+          Unificado/pon.alert.total.1_3)>={$ONU.PON.MIN.CLIENTES} and last(/WNET -
+          OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24 Unificado/pon.alert.energy.1_3)>={$ONU.ENERGIA.REGIAO.MIN}
+        priority: HIGH
+        manual_close: 'YES'
+        description: Dispara quando várias ONUs da mesma PON entram em Dying Gasp/sem
+          energia. Indica provável falta de energia na região/área atendida pela PON.
+        tags:
+        - tag: class
+          value: power
+        - tag: evento
+          value: sem_energia
+        - tag: pon
+          value: '1_3'
+    - uuid: 68e0be352c3641dc98e1d3cfd530e9b6
+      name: 'PON 1/4: cache JSON para alertas estáticos'
+      type: EXTERNAL
+      key: ponfh["1_4","json","{$OLT.SNMP.IP}","{$SNMP_COMMUNITY}","{$SNMP_PORT}","{$SNMP_TIMEOUT}","{$SNMP_RETRIES}","{$PONFH.CACHE_TTL}"]
+      delay: 2m
+      history: 1d
+      trends: '0'
+      value_type: TEXT
+      tags:
+      - &id007
+        tag: componente
+        value: PON
+      - &id008
+        tag: pon
+        value: '1_4'
+      - tag: item
+        value: cache_json
+      - tag: modo
+        value: alerta_estatico
+    - uuid: a21fcd8a2d814070a0c31b071be5d579
+      name: 'PON 1/4: total de ONUs autorizadas para alerta'
+      type: DEPENDENT
+      key: pon.alert.total.1_4
+      delay: '0'
+      history: 90d
+      trends: 365d
+      value_type: UNSIGNED
+      master_item:
+        key: ponfh["1_4","json","{$OLT.SNMP.IP}","{$SNMP_COMMUNITY}","{$SNMP_PORT}","{$SNMP_TIMEOUT}","{$SNMP_RETRIES}","{$PONFH.CACHE_TTL}"]
+      preprocessing:
+      - type: JSONPATH
+        parameters:
+        - $.total
+      tags:
+      - *id007
+      - *id008
+      - tag: item
+        value: total
+      - tag: modo
+        value: alerta_estatico
+      triggers:
+      - uuid: 72bd527ce7504bb09f45e9fd5c80f2d6
+        name: PON 1/4 down, possível rompimento
+        expression: last(/Template - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24
+          Unificado/pon.alert.total.1_4)>={$ONU.PON.MIN.CLIENTES} and last(/WNET -
+          OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24 Unificado/pon.alert.los.1_4)=last(/WNET
+          - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24 Unificado/pon.alert.total.1_4)
+        priority: DISASTER
+        manual_close: 'YES'
+        description: Dispara quando todas as ONUs autorizadas da PON estão em LOS.
+          Indica possível rompimento, problema físico na fibra, splitter, CTO ou porta
+          PON.
+        tags:
+        - tag: class
+          value: network
+        - tag: evento
+          value: rompimento
+        - tag: pon
+          value: '1_4'
+    - uuid: 6dbedf9d237b470c9ca28cb45fc4626a
+      name: 'PON 1/4: ONUs em LOS para alerta'
+      type: DEPENDENT
+      key: pon.alert.los.1_4
+      delay: '0'
+      history: 90d
+      trends: 365d
+      value_type: UNSIGNED
+      master_item:
+        key: ponfh["1_4","json","{$OLT.SNMP.IP}","{$SNMP_COMMUNITY}","{$SNMP_PORT}","{$SNMP_TIMEOUT}","{$SNMP_RETRIES}","{$PONFH.CACHE_TTL}"]
+      preprocessing:
+      - type: JSONPATH
+        parameters:
+        - $.los
+      tags:
+      - *id007
+      - *id008
+      - tag: item
+        value: los
+      - tag: modo
+        value: alerta_estatico
+    - uuid: 90ab238451d34f64ab4bb6b0864ae0f7
+      name: 'PON 1/4: ONUs sem energia para alerta'
+      type: DEPENDENT
+      key: pon.alert.energy.1_4
+      delay: '0'
+      history: 90d
+      trends: 365d
+      value_type: UNSIGNED
+      master_item:
+        key: ponfh["1_4","json","{$OLT.SNMP.IP}","{$SNMP_COMMUNITY}","{$SNMP_PORT}","{$SNMP_TIMEOUT}","{$SNMP_RETRIES}","{$PONFH.CACHE_TTL}"]
+      preprocessing:
+      - type: JSONPATH
+        parameters:
+        - $.sem_energia
+      tags:
+      - *id007
+      - *id008
+      - tag: item
+        value: sem_energia
+      - tag: modo
+        value: alerta_estatico
+      triggers:
+      - uuid: 957b7d9507834b0a933e0096b871cfd4
+        name: 'PON 1/4: região sem energia, clientes off por falta de energia'
+        expression: last(/Template - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24
+          Unificado/pon.alert.total.1_4)>={$ONU.PON.MIN.CLIENTES} and last(/WNET -
+          OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24 Unificado/pon.alert.energy.1_4)>={$ONU.ENERGIA.REGIAO.MIN}
+        priority: HIGH
+        manual_close: 'YES'
+        description: Dispara quando várias ONUs da mesma PON entram em Dying Gasp/sem
+          energia. Indica provável falta de energia na região/área atendida pela PON.
+        tags:
+        - tag: class
+          value: power
+        - tag: evento
+          value: sem_energia
+        - tag: pon
+          value: '1_4'
+    - uuid: e8164a70ad634c26a7c1b15a140ffb05
+      name: 'PON 1/5: cache JSON para alertas estáticos'
+      type: EXTERNAL
+      key: ponfh["1_5","json","{$OLT.SNMP.IP}","{$SNMP_COMMUNITY}","{$SNMP_PORT}","{$SNMP_TIMEOUT}","{$SNMP_RETRIES}","{$PONFH.CACHE_TTL}"]
+      delay: 2m
+      history: 1d
+      trends: '0'
+      value_type: TEXT
+      tags:
+      - &id009
+        tag: componente
+        value: PON
+      - &id010
+        tag: pon
+        value: '1_5'
+      - tag: item
+        value: cache_json
+      - tag: modo
+        value: alerta_estatico
+    - uuid: 8a7bd700996648b8858673de87a73972
+      name: 'PON 1/5: total de ONUs autorizadas para alerta'
+      type: DEPENDENT
+      key: pon.alert.total.1_5
+      delay: '0'
+      history: 90d
+      trends: 365d
+      value_type: UNSIGNED
+      master_item:
+        key: ponfh["1_5","json","{$OLT.SNMP.IP}","{$SNMP_COMMUNITY}","{$SNMP_PORT}","{$SNMP_TIMEOUT}","{$SNMP_RETRIES}","{$PONFH.CACHE_TTL}"]
+      preprocessing:
+      - type: JSONPATH
+        parameters:
+        - $.total
+      tags:
+      - *id009
+      - *id010
+      - tag: item
+        value: total
+      - tag: modo
+        value: alerta_estatico
+      triggers:
+      - uuid: e3399e4a7035453b97a975726e118cbd
+        name: PON 1/5 down, possível rompimento
+        expression: last(/Template - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24
+          Unificado/pon.alert.total.1_5)>={$ONU.PON.MIN.CLIENTES} and last(/WNET -
+          OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24 Unificado/pon.alert.los.1_5)=last(/WNET
+          - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24 Unificado/pon.alert.total.1_5)
+        priority: DISASTER
+        manual_close: 'YES'
+        description: Dispara quando todas as ONUs autorizadas da PON estão em LOS.
+          Indica possível rompimento, problema físico na fibra, splitter, CTO ou porta
+          PON.
+        tags:
+        - tag: class
+          value: network
+        - tag: evento
+          value: rompimento
+        - tag: pon
+          value: '1_5'
+    - uuid: 2d6392d7f8dd463caa63c3a17cb258ba
+      name: 'PON 1/5: ONUs em LOS para alerta'
+      type: DEPENDENT
+      key: pon.alert.los.1_5
+      delay: '0'
+      history: 90d
+      trends: 365d
+      value_type: UNSIGNED
+      master_item:
+        key: ponfh["1_5","json","{$OLT.SNMP.IP}","{$SNMP_COMMUNITY}","{$SNMP_PORT}","{$SNMP_TIMEOUT}","{$SNMP_RETRIES}","{$PONFH.CACHE_TTL}"]
+      preprocessing:
+      - type: JSONPATH
+        parameters:
+        - $.los
+      tags:
+      - *id009
+      - *id010
+      - tag: item
+        value: los
+      - tag: modo
+        value: alerta_estatico
+    - uuid: 7ba8707b0c234f818b0bc121fd69490d
+      name: 'PON 1/5: ONUs sem energia para alerta'
+      type: DEPENDENT
+      key: pon.alert.energy.1_5
+      delay: '0'
+      history: 90d
+      trends: 365d
+      value_type: UNSIGNED
+      master_item:
+        key: ponfh["1_5","json","{$OLT.SNMP.IP}","{$SNMP_COMMUNITY}","{$SNMP_PORT}","{$SNMP_TIMEOUT}","{$SNMP_RETRIES}","{$PONFH.CACHE_TTL}"]
+      preprocessing:
+      - type: JSONPATH
+        parameters:
+        - $.sem_energia
+      tags:
+      - *id009
+      - *id010
+      - tag: item
+        value: sem_energia
+      - tag: modo
+        value: alerta_estatico
+      triggers:
+      - uuid: 22dadc1f298f40d5b335ac2fd0801483
+        name: 'PON 1/5: região sem energia, clientes off por falta de energia'
+        expression: last(/Template - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24
+          Unificado/pon.alert.total.1_5)>={$ONU.PON.MIN.CLIENTES} and last(/WNET -
+          OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24 Unificado/pon.alert.energy.1_5)>={$ONU.ENERGIA.REGIAO.MIN}
+        priority: HIGH
+        manual_close: 'YES'
+        description: Dispara quando várias ONUs da mesma PON entram em Dying Gasp/sem
+          energia. Indica provável falta de energia na região/área atendida pela PON.
+        tags:
+        - tag: class
+          value: power
+        - tag: evento
+          value: sem_energia
+        - tag: pon
+          value: '1_5'
+    - uuid: 8c19afb1ab3a4822994280c032c14802
+      name: 'PON 1/6: cache JSON para alertas estáticos'
+      type: EXTERNAL
+      key: ponfh["1_6","json","{$OLT.SNMP.IP}","{$SNMP_COMMUNITY}","{$SNMP_PORT}","{$SNMP_TIMEOUT}","{$SNMP_RETRIES}","{$PONFH.CACHE_TTL}"]
+      delay: 2m
+      history: 1d
+      trends: '0'
+      value_type: TEXT
+      tags:
+      - &id011
+        tag: componente
+        value: PON
+      - &id012
+        tag: pon
+        value: '1_6'
+      - tag: item
+        value: cache_json
+      - tag: modo
+        value: alerta_estatico
+    - uuid: 53aa5043a98741f083fb123a04f5d1aa
+      name: 'PON 1/6: total de ONUs autorizadas para alerta'
+      type: DEPENDENT
+      key: pon.alert.total.1_6
+      delay: '0'
+      history: 90d
+      trends: 365d
+      value_type: UNSIGNED
+      master_item:
+        key: ponfh["1_6","json","{$OLT.SNMP.IP}","{$SNMP_COMMUNITY}","{$SNMP_PORT}","{$SNMP_TIMEOUT}","{$SNMP_RETRIES}","{$PONFH.CACHE_TTL}"]
+      preprocessing:
+      - type: JSONPATH
+        parameters:
+        - $.total
+      tags:
+      - *id011
+      - *id012
+      - tag: item
+        value: total
+      - tag: modo
+        value: alerta_estatico
+      triggers:
+      - uuid: ff2cb38994724c28a24e2a5f469cc1f9
+        name: PON 1/6 down, possível rompimento
+        expression: last(/Template - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24
+          Unificado/pon.alert.total.1_6)>={$ONU.PON.MIN.CLIENTES} and last(/WNET -
+          OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24 Unificado/pon.alert.los.1_6)=last(/WNET
+          - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24 Unificado/pon.alert.total.1_6)
+        priority: DISASTER
+        manual_close: 'YES'
+        description: Dispara quando todas as ONUs autorizadas da PON estão em LOS.
+          Indica possível rompimento, problema físico na fibra, splitter, CTO ou porta
+          PON.
+        tags:
+        - tag: class
+          value: network
+        - tag: evento
+          value: rompimento
+        - tag: pon
+          value: '1_6'
+    - uuid: ba60f623846747119b58975a095e0d0e
+      name: 'PON 1/6: ONUs em LOS para alerta'
+      type: DEPENDENT
+      key: pon.alert.los.1_6
+      delay: '0'
+      history: 90d
+      trends: 365d
+      value_type: UNSIGNED
+      master_item:
+        key: ponfh["1_6","json","{$OLT.SNMP.IP}","{$SNMP_COMMUNITY}","{$SNMP_PORT}","{$SNMP_TIMEOUT}","{$SNMP_RETRIES}","{$PONFH.CACHE_TTL}"]
+      preprocessing:
+      - type: JSONPATH
+        parameters:
+        - $.los
+      tags:
+      - *id011
+      - *id012
+      - tag: item
+        value: los
+      - tag: modo
+        value: alerta_estatico
+    - uuid: cee7d62d62b34257b8be4af31d02f51c
+      name: 'PON 1/6: ONUs sem energia para alerta'
+      type: DEPENDENT
+      key: pon.alert.energy.1_6
+      delay: '0'
+      history: 90d
+      trends: 365d
+      value_type: UNSIGNED
+      master_item:
+        key: ponfh["1_6","json","{$OLT.SNMP.IP}","{$SNMP_COMMUNITY}","{$SNMP_PORT}","{$SNMP_TIMEOUT}","{$SNMP_RETRIES}","{$PONFH.CACHE_TTL}"]
+      preprocessing:
+      - type: JSONPATH
+        parameters:
+        - $.sem_energia
+      tags:
+      - *id011
+      - *id012
+      - tag: item
+        value: sem_energia
+      - tag: modo
+        value: alerta_estatico
+      triggers:
+      - uuid: 171985cba11749cabe9bcc20828334cb
+        name: 'PON 1/6: região sem energia, clientes off por falta de energia'
+        expression: last(/Template - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24
+          Unificado/pon.alert.total.1_6)>={$ONU.PON.MIN.CLIENTES} and last(/WNET -
+          OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24 Unificado/pon.alert.energy.1_6)>={$ONU.ENERGIA.REGIAO.MIN}
+        priority: HIGH
+        manual_close: 'YES'
+        description: Dispara quando várias ONUs da mesma PON entram em Dying Gasp/sem
+          energia. Indica provável falta de energia na região/área atendida pela PON.
+        tags:
+        - tag: class
+          value: power
+        - tag: evento
+          value: sem_energia
+        - tag: pon
+          value: '1_6'
+    - uuid: 9dc34890ea21409b9da084390295507d
+      name: 'PON 1/7: cache JSON para alertas estáticos'
+      type: EXTERNAL
+      key: ponfh["1_7","json","{$OLT.SNMP.IP}","{$SNMP_COMMUNITY}","{$SNMP_PORT}","{$SNMP_TIMEOUT}","{$SNMP_RETRIES}","{$PONFH.CACHE_TTL}"]
+      delay: 2m
+      history: 1d
+      trends: '0'
+      value_type: TEXT
+      tags:
+      - &id013
+        tag: componente
+        value: PON
+      - &id014
+        tag: pon
+        value: '1_7'
+      - tag: item
+        value: cache_json
+      - tag: modo
+        value: alerta_estatico
+    - uuid: 5d05be138ba5482397141199bcff1979
+      name: 'PON 1/7: total de ONUs autorizadas para alerta'
+      type: DEPENDENT
+      key: pon.alert.total.1_7
+      delay: '0'
+      history: 90d
+      trends: 365d
+      value_type: UNSIGNED
+      master_item:
+        key: ponfh["1_7","json","{$OLT.SNMP.IP}","{$SNMP_COMMUNITY}","{$SNMP_PORT}","{$SNMP_TIMEOUT}","{$SNMP_RETRIES}","{$PONFH.CACHE_TTL}"]
+      preprocessing:
+      - type: JSONPATH
+        parameters:
+        - $.total
+      tags:
+      - *id013
+      - *id014
+      - tag: item
+        value: total
+      - tag: modo
+        value: alerta_estatico
+      triggers:
+      - uuid: 2edb890d8d6941c889ecfcd411b35e45
+        name: PON 1/7 down, possível rompimento
+        expression: last(/Template - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24
+          Unificado/pon.alert.total.1_7)>={$ONU.PON.MIN.CLIENTES} and last(/WNET -
+          OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24 Unificado/pon.alert.los.1_7)=last(/WNET
+          - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24 Unificado/pon.alert.total.1_7)
+        priority: DISASTER
+        manual_close: 'YES'
+        description: Dispara quando todas as ONUs autorizadas da PON estão em LOS.
+          Indica possível rompimento, problema físico na fibra, splitter, CTO ou porta
+          PON.
+        tags:
+        - tag: class
+          value: network
+        - tag: evento
+          value: rompimento
+        - tag: pon
+          value: '1_7'
+    - uuid: a92ea03117e842c7808a99d07fe96c78
+      name: 'PON 1/7: ONUs em LOS para alerta'
+      type: DEPENDENT
+      key: pon.alert.los.1_7
+      delay: '0'
+      history: 90d
+      trends: 365d
+      value_type: UNSIGNED
+      master_item:
+        key: ponfh["1_7","json","{$OLT.SNMP.IP}","{$SNMP_COMMUNITY}","{$SNMP_PORT}","{$SNMP_TIMEOUT}","{$SNMP_RETRIES}","{$PONFH.CACHE_TTL}"]
+      preprocessing:
+      - type: JSONPATH
+        parameters:
+        - $.los
+      tags:
+      - *id013
+      - *id014
+      - tag: item
+        value: los
+      - tag: modo
+        value: alerta_estatico
+    - uuid: 1bf3c1d1e5934ee49b648fd93560a7b7
+      name: 'PON 1/7: ONUs sem energia para alerta'
+      type: DEPENDENT
+      key: pon.alert.energy.1_7
+      delay: '0'
+      history: 90d
+      trends: 365d
+      value_type: UNSIGNED
+      master_item:
+        key: ponfh["1_7","json","{$OLT.SNMP.IP}","{$SNMP_COMMUNITY}","{$SNMP_PORT}","{$SNMP_TIMEOUT}","{$SNMP_RETRIES}","{$PONFH.CACHE_TTL}"]
+      preprocessing:
+      - type: JSONPATH
+        parameters:
+        - $.sem_energia
+      tags:
+      - *id013
+      - *id014
+      - tag: item
+        value: sem_energia
+      - tag: modo
+        value: alerta_estatico
+      triggers:
+      - uuid: 2e9fc340073042098174abb6ca596bb6
+        name: 'PON 1/7: região sem energia, clientes off por falta de energia'
+        expression: last(/Template - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24
+          Unificado/pon.alert.total.1_7)>={$ONU.PON.MIN.CLIENTES} and last(/WNET -
+          OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24 Unificado/pon.alert.energy.1_7)>={$ONU.ENERGIA.REGIAO.MIN}
+        priority: HIGH
+        manual_close: 'YES'
+        description: Dispara quando várias ONUs da mesma PON entram em Dying Gasp/sem
+          energia. Indica provável falta de energia na região/área atendida pela PON.
+        tags:
+        - tag: class
+          value: power
+        - tag: evento
+          value: sem_energia
+        - tag: pon
+          value: '1_7'
+    - uuid: 36f3a23e447443f9980407acf5cdffb9
+      name: 'PON 1/8: cache JSON para alertas estáticos'
+      type: EXTERNAL
+      key: ponfh["1_8","json","{$OLT.SNMP.IP}","{$SNMP_COMMUNITY}","{$SNMP_PORT}","{$SNMP_TIMEOUT}","{$SNMP_RETRIES}","{$PONFH.CACHE_TTL}"]
+      delay: 2m
+      history: 1d
+      trends: '0'
+      value_type: TEXT
+      tags:
+      - &id015
+        tag: componente
+        value: PON
+      - &id016
+        tag: pon
+        value: '1_8'
+      - tag: item
+        value: cache_json
+      - tag: modo
+        value: alerta_estatico
+    - uuid: b1e0625638bf492a9032162c737b4d44
+      name: 'PON 1/8: total de ONUs autorizadas para alerta'
+      type: DEPENDENT
+      key: pon.alert.total.1_8
+      delay: '0'
+      history: 90d
+      trends: 365d
+      value_type: UNSIGNED
+      master_item:
+        key: ponfh["1_8","json","{$OLT.SNMP.IP}","{$SNMP_COMMUNITY}","{$SNMP_PORT}","{$SNMP_TIMEOUT}","{$SNMP_RETRIES}","{$PONFH.CACHE_TTL}"]
+      preprocessing:
+      - type: JSONPATH
+        parameters:
+        - $.total
+      tags:
+      - *id015
+      - *id016
+      - tag: item
+        value: total
+      - tag: modo
+        value: alerta_estatico
+      triggers:
+      - uuid: bdd2842c017b4a25a4a0f9f29897789d
+        name: PON 1/8 down, possível rompimento
+        expression: last(/Template - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24
+          Unificado/pon.alert.total.1_8)>={$ONU.PON.MIN.CLIENTES} and last(/WNET -
+          OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24 Unificado/pon.alert.los.1_8)=last(/WNET
+          - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24 Unificado/pon.alert.total.1_8)
+        priority: DISASTER
+        manual_close: 'YES'
+        description: Dispara quando todas as ONUs autorizadas da PON estão em LOS.
+          Indica possível rompimento, problema físico na fibra, splitter, CTO ou porta
+          PON.
+        tags:
+        - tag: class
+          value: network
+        - tag: evento
+          value: rompimento
+        - tag: pon
+          value: '1_8'
+    - uuid: 33b7c8ba63624d5891038ab2ef4f2db6
+      name: 'PON 1/8: ONUs em LOS para alerta'
+      type: DEPENDENT
+      key: pon.alert.los.1_8
+      delay: '0'
+      history: 90d
+      trends: 365d
+      value_type: UNSIGNED
+      master_item:
+        key: ponfh["1_8","json","{$OLT.SNMP.IP}","{$SNMP_COMMUNITY}","{$SNMP_PORT}","{$SNMP_TIMEOUT}","{$SNMP_RETRIES}","{$PONFH.CACHE_TTL}"]
+      preprocessing:
+      - type: JSONPATH
+        parameters:
+        - $.los
+      tags:
+      - *id015
+      - *id016
+      - tag: item
+        value: los
+      - tag: modo
+        value: alerta_estatico
+    - uuid: 0ce6221694dd4fafa44d4eca8b93e863
+      name: 'PON 1/8: ONUs sem energia para alerta'
+      type: DEPENDENT
+      key: pon.alert.energy.1_8
+      delay: '0'
+      history: 90d
+      trends: 365d
+      value_type: UNSIGNED
+      master_item:
+        key: ponfh["1_8","json","{$OLT.SNMP.IP}","{$SNMP_COMMUNITY}","{$SNMP_PORT}","{$SNMP_TIMEOUT}","{$SNMP_RETRIES}","{$PONFH.CACHE_TTL}"]
+      preprocessing:
+      - type: JSONPATH
+        parameters:
+        - $.sem_energia
+      tags:
+      - *id015
+      - *id016
+      - tag: item
+        value: sem_energia
+      - tag: modo
+        value: alerta_estatico
+      triggers:
+      - uuid: 91ae33ce225e425395f19bedd3a4296b
+        name: 'PON 1/8: região sem energia, clientes off por falta de energia'
+        expression: last(/Template - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24
+          Unificado/pon.alert.total.1_8)>={$ONU.PON.MIN.CLIENTES} and last(/WNET -
+          OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24 Unificado/pon.alert.energy.1_8)>={$ONU.ENERGIA.REGIAO.MIN}
+        priority: HIGH
+        manual_close: 'YES'
+        description: Dispara quando várias ONUs da mesma PON entram em Dying Gasp/sem
+          energia. Indica provável falta de energia na região/área atendida pela PON.
+        tags:
+        - tag: class
+          value: power
+        - tag: evento
+          value: sem_energia
+        - tag: pon
+          value: '1_8'
+    - uuid: 3ef2def215584f2f88be6634d12f7115
+      name: 'PON 1/9: cache JSON para alertas estáticos'
+      type: EXTERNAL
+      key: ponfh["1_9","json","{$OLT.SNMP.IP}","{$SNMP_COMMUNITY}","{$SNMP_PORT}","{$SNMP_TIMEOUT}","{$SNMP_RETRIES}","{$PONFH.CACHE_TTL}"]
+      delay: 2m
+      history: 1d
+      trends: '0'
+      value_type: TEXT
+      tags:
+      - &id017
+        tag: componente
+        value: PON
+      - &id018
+        tag: pon
+        value: '1_9'
+      - tag: item
+        value: cache_json
+      - tag: modo
+        value: alerta_estatico
+    - uuid: 424bb94190f84d6dbf57f66e4e3791e1
+      name: 'PON 1/9: total de ONUs autorizadas para alerta'
+      type: DEPENDENT
+      key: pon.alert.total.1_9
+      delay: '0'
+      history: 90d
+      trends: 365d
+      value_type: UNSIGNED
+      master_item:
+        key: ponfh["1_9","json","{$OLT.SNMP.IP}","{$SNMP_COMMUNITY}","{$SNMP_PORT}","{$SNMP_TIMEOUT}","{$SNMP_RETRIES}","{$PONFH.CACHE_TTL}"]
+      preprocessing:
+      - type: JSONPATH
+        parameters:
+        - $.total
+      tags:
+      - *id017
+      - *id018
+      - tag: item
+        value: total
+      - tag: modo
+        value: alerta_estatico
+      triggers:
+      - uuid: 91a60cb2bb794c2686b570b7a7551ffc
+        name: PON 1/9 down, possível rompimento
+        expression: last(/Template - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24
+          Unificado/pon.alert.total.1_9)>={$ONU.PON.MIN.CLIENTES} and last(/WNET -
+          OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24 Unificado/pon.alert.los.1_9)=last(/WNET
+          - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24 Unificado/pon.alert.total.1_9)
+        priority: DISASTER
+        manual_close: 'YES'
+        description: Dispara quando todas as ONUs autorizadas da PON estão em LOS.
+          Indica possível rompimento, problema físico na fibra, splitter, CTO ou porta
+          PON.
+        tags:
+        - tag: class
+          value: network
+        - tag: evento
+          value: rompimento
+        - tag: pon
+          value: '1_9'
+    - uuid: 10dccf18dc2e44c8a28ae65bf4b0bada
+      name: 'PON 1/9: ONUs em LOS para alerta'
+      type: DEPENDENT
+      key: pon.alert.los.1_9
+      delay: '0'
+      history: 90d
+      trends: 365d
+      value_type: UNSIGNED
+      master_item:
+        key: ponfh["1_9","json","{$OLT.SNMP.IP}","{$SNMP_COMMUNITY}","{$SNMP_PORT}","{$SNMP_TIMEOUT}","{$SNMP_RETRIES}","{$PONFH.CACHE_TTL}"]
+      preprocessing:
+      - type: JSONPATH
+        parameters:
+        - $.los
+      tags:
+      - *id017
+      - *id018
+      - tag: item
+        value: los
+      - tag: modo
+        value: alerta_estatico
+    - uuid: 14233a79016d46bda1fd87a111f38aa5
+      name: 'PON 1/9: ONUs sem energia para alerta'
+      type: DEPENDENT
+      key: pon.alert.energy.1_9
+      delay: '0'
+      history: 90d
+      trends: 365d
+      value_type: UNSIGNED
+      master_item:
+        key: ponfh["1_9","json","{$OLT.SNMP.IP}","{$SNMP_COMMUNITY}","{$SNMP_PORT}","{$SNMP_TIMEOUT}","{$SNMP_RETRIES}","{$PONFH.CACHE_TTL}"]
+      preprocessing:
+      - type: JSONPATH
+        parameters:
+        - $.sem_energia
+      tags:
+      - *id017
+      - *id018
+      - tag: item
+        value: sem_energia
+      - tag: modo
+        value: alerta_estatico
+      triggers:
+      - uuid: 612c59a0442b4db5a74ba02d871bb1db
+        name: 'PON 1/9: região sem energia, clientes off por falta de energia'
+        expression: last(/Template - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24
+          Unificado/pon.alert.total.1_9)>={$ONU.PON.MIN.CLIENTES} and last(/WNET -
+          OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24 Unificado/pon.alert.energy.1_9)>={$ONU.ENERGIA.REGIAO.MIN}
+        priority: HIGH
+        manual_close: 'YES'
+        description: Dispara quando várias ONUs da mesma PON entram em Dying Gasp/sem
+          energia. Indica provável falta de energia na região/área atendida pela PON.
+        tags:
+        - tag: class
+          value: power
+        - tag: evento
+          value: sem_energia
+        - tag: pon
+          value: '1_9'
+    - uuid: c69d547c03054bfe87cac6da92a8020e
+      name: 'PON 1/10: cache JSON para alertas estáticos'
+      type: EXTERNAL
+      key: ponfh["1_10","json","{$OLT.SNMP.IP}","{$SNMP_COMMUNITY}","{$SNMP_PORT}","{$SNMP_TIMEOUT}","{$SNMP_RETRIES}","{$PONFH.CACHE_TTL}"]
+      delay: 2m
+      history: 1d
+      trends: '0'
+      value_type: TEXT
+      tags:
+      - &id019
+        tag: componente
+        value: PON
+      - &id020
+        tag: pon
+        value: '1_10'
+      - tag: item
+        value: cache_json
+      - tag: modo
+        value: alerta_estatico
+    - uuid: e9eb779048ac4687bb4c1fda41e72d85
+      name: 'PON 1/10: total de ONUs autorizadas para alerta'
+      type: DEPENDENT
+      key: pon.alert.total.1_10
+      delay: '0'
+      history: 90d
+      trends: 365d
+      value_type: UNSIGNED
+      master_item:
+        key: ponfh["1_10","json","{$OLT.SNMP.IP}","{$SNMP_COMMUNITY}","{$SNMP_PORT}","{$SNMP_TIMEOUT}","{$SNMP_RETRIES}","{$PONFH.CACHE_TTL}"]
+      preprocessing:
+      - type: JSONPATH
+        parameters:
+        - $.total
+      tags:
+      - *id019
+      - *id020
+      - tag: item
+        value: total
+      - tag: modo
+        value: alerta_estatico
+      triggers:
+      - uuid: 28867ebd250348509781f15453e2f5de
+        name: PON 1/10 down, possível rompimento
+        expression: last(/Template - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24
+          Unificado/pon.alert.total.1_10)>={$ONU.PON.MIN.CLIENTES} and last(/WNET
+          - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24 Unificado/pon.alert.los.1_10)=last(/WNET
+          - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24 Unificado/pon.alert.total.1_10)
+        priority: DISASTER
+        manual_close: 'YES'
+        description: Dispara quando todas as ONUs autorizadas da PON estão em LOS.
+          Indica possível rompimento, problema físico na fibra, splitter, CTO ou porta
+          PON.
+        tags:
+        - tag: class
+          value: network
+        - tag: evento
+          value: rompimento
+        - tag: pon
+          value: '1_10'
+    - uuid: cb03f42aa6e641b799a64a01743081de
+      name: 'PON 1/10: ONUs em LOS para alerta'
+      type: DEPENDENT
+      key: pon.alert.los.1_10
+      delay: '0'
+      history: 90d
+      trends: 365d
+      value_type: UNSIGNED
+      master_item:
+        key: ponfh["1_10","json","{$OLT.SNMP.IP}","{$SNMP_COMMUNITY}","{$SNMP_PORT}","{$SNMP_TIMEOUT}","{$SNMP_RETRIES}","{$PONFH.CACHE_TTL}"]
+      preprocessing:
+      - type: JSONPATH
+        parameters:
+        - $.los
+      tags:
+      - *id019
+      - *id020
+      - tag: item
+        value: los
+      - tag: modo
+        value: alerta_estatico
+    - uuid: 7680f5cfff9b48fa9b16574bd14fa0a4
+      name: 'PON 1/10: ONUs sem energia para alerta'
+      type: DEPENDENT
+      key: pon.alert.energy.1_10
+      delay: '0'
+      history: 90d
+      trends: 365d
+      value_type: UNSIGNED
+      master_item:
+        key: ponfh["1_10","json","{$OLT.SNMP.IP}","{$SNMP_COMMUNITY}","{$SNMP_PORT}","{$SNMP_TIMEOUT}","{$SNMP_RETRIES}","{$PONFH.CACHE_TTL}"]
+      preprocessing:
+      - type: JSONPATH
+        parameters:
+        - $.sem_energia
+      tags:
+      - *id019
+      - *id020
+      - tag: item
+        value: sem_energia
+      - tag: modo
+        value: alerta_estatico
+      triggers:
+      - uuid: 99538e5e455c4c1a9f7a49da18217dec
+        name: 'PON 1/10: região sem energia, clientes off por falta de energia'
+        expression: last(/Template - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24
+          Unificado/pon.alert.total.1_10)>={$ONU.PON.MIN.CLIENTES} and last(/WNET
+          - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24 Unificado/pon.alert.energy.1_10)>={$ONU.ENERGIA.REGIAO.MIN}
+        priority: HIGH
+        manual_close: 'YES'
+        description: Dispara quando várias ONUs da mesma PON entram em Dying Gasp/sem
+          energia. Indica provável falta de energia na região/área atendida pela PON.
+        tags:
+        - tag: class
+          value: power
+        - tag: evento
+          value: sem_energia
+        - tag: pon
+          value: '1_10'
+    - uuid: 6cb030b7ffb84928b20d0c8002cc8389
+      name: 'PON 1/11: cache JSON para alertas estáticos'
+      type: EXTERNAL
+      key: ponfh["1_11","json","{$OLT.SNMP.IP}","{$SNMP_COMMUNITY}","{$SNMP_PORT}","{$SNMP_TIMEOUT}","{$SNMP_RETRIES}","{$PONFH.CACHE_TTL}"]
+      delay: 2m
+      history: 1d
+      trends: '0'
+      value_type: TEXT
+      tags:
+      - &id021
+        tag: componente
+        value: PON
+      - &id022
+        tag: pon
+        value: '1_11'
+      - tag: item
+        value: cache_json
+      - tag: modo
+        value: alerta_estatico
+    - uuid: cda72545ea63413e9e0b7692da716287
+      name: 'PON 1/11: total de ONUs autorizadas para alerta'
+      type: DEPENDENT
+      key: pon.alert.total.1_11
+      delay: '0'
+      history: 90d
+      trends: 365d
+      value_type: UNSIGNED
+      master_item:
+        key: ponfh["1_11","json","{$OLT.SNMP.IP}","{$SNMP_COMMUNITY}","{$SNMP_PORT}","{$SNMP_TIMEOUT}","{$SNMP_RETRIES}","{$PONFH.CACHE_TTL}"]
+      preprocessing:
+      - type: JSONPATH
+        parameters:
+        - $.total
+      tags:
+      - *id021
+      - *id022
+      - tag: item
+        value: total
+      - tag: modo
+        value: alerta_estatico
+      triggers:
+      - uuid: 6b0032e309594d59a8a2c8e5b0fe62f7
+        name: PON 1/11 down, possível rompimento
+        expression: last(/Template - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24
+          Unificado/pon.alert.total.1_11)>={$ONU.PON.MIN.CLIENTES} and last(/WNET
+          - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24 Unificado/pon.alert.los.1_11)=last(/WNET
+          - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24 Unificado/pon.alert.total.1_11)
+        priority: DISASTER
+        manual_close: 'YES'
+        description: Dispara quando todas as ONUs autorizadas da PON estão em LOS.
+          Indica possível rompimento, problema físico na fibra, splitter, CTO ou porta
+          PON.
+        tags:
+        - tag: class
+          value: network
+        - tag: evento
+          value: rompimento
+        - tag: pon
+          value: '1_11'
+    - uuid: 42f35eb59ae94d2d8cbefa01ed006dc5
+      name: 'PON 1/11: ONUs em LOS para alerta'
+      type: DEPENDENT
+      key: pon.alert.los.1_11
+      delay: '0'
+      history: 90d
+      trends: 365d
+      value_type: UNSIGNED
+      master_item:
+        key: ponfh["1_11","json","{$OLT.SNMP.IP}","{$SNMP_COMMUNITY}","{$SNMP_PORT}","{$SNMP_TIMEOUT}","{$SNMP_RETRIES}","{$PONFH.CACHE_TTL}"]
+      preprocessing:
+      - type: JSONPATH
+        parameters:
+        - $.los
+      tags:
+      - *id021
+      - *id022
+      - tag: item
+        value: los
+      - tag: modo
+        value: alerta_estatico
+    - uuid: 505e422e6c4944cba8b13db3c238f116
+      name: 'PON 1/11: ONUs sem energia para alerta'
+      type: DEPENDENT
+      key: pon.alert.energy.1_11
+      delay: '0'
+      history: 90d
+      trends: 365d
+      value_type: UNSIGNED
+      master_item:
+        key: ponfh["1_11","json","{$OLT.SNMP.IP}","{$SNMP_COMMUNITY}","{$SNMP_PORT}","{$SNMP_TIMEOUT}","{$SNMP_RETRIES}","{$PONFH.CACHE_TTL}"]
+      preprocessing:
+      - type: JSONPATH
+        parameters:
+        - $.sem_energia
+      tags:
+      - *id021
+      - *id022
+      - tag: item
+        value: sem_energia
+      - tag: modo
+        value: alerta_estatico
+      triggers:
+      - uuid: ddd757552198426f83e8e6f0e565867d
+        name: 'PON 1/11: região sem energia, clientes off por falta de energia'
+        expression: last(/Template - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24
+          Unificado/pon.alert.total.1_11)>={$ONU.PON.MIN.CLIENTES} and last(/WNET
+          - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24 Unificado/pon.alert.energy.1_11)>={$ONU.ENERGIA.REGIAO.MIN}
+        priority: HIGH
+        manual_close: 'YES'
+        description: Dispara quando várias ONUs da mesma PON entram em Dying Gasp/sem
+          energia. Indica provável falta de energia na região/área atendida pela PON.
+        tags:
+        - tag: class
+          value: power
+        - tag: evento
+          value: sem_energia
+        - tag: pon
+          value: '1_11'
+    - uuid: f3dc9836a09d431c9493d701290496a9
+      name: 'PON 1/12: cache JSON para alertas estáticos'
+      type: EXTERNAL
+      key: ponfh["1_12","json","{$OLT.SNMP.IP}","{$SNMP_COMMUNITY}","{$SNMP_PORT}","{$SNMP_TIMEOUT}","{$SNMP_RETRIES}","{$PONFH.CACHE_TTL}"]
+      delay: 2m
+      history: 1d
+      trends: '0'
+      value_type: TEXT
+      tags:
+      - &id023
+        tag: componente
+        value: PON
+      - &id024
+        tag: pon
+        value: '1_12'
+      - tag: item
+        value: cache_json
+      - tag: modo
+        value: alerta_estatico
+    - uuid: f54ee2acf2ae45a09406d8ed2b185877
+      name: 'PON 1/12: total de ONUs autorizadas para alerta'
+      type: DEPENDENT
+      key: pon.alert.total.1_12
+      delay: '0'
+      history: 90d
+      trends: 365d
+      value_type: UNSIGNED
+      master_item:
+        key: ponfh["1_12","json","{$OLT.SNMP.IP}","{$SNMP_COMMUNITY}","{$SNMP_PORT}","{$SNMP_TIMEOUT}","{$SNMP_RETRIES}","{$PONFH.CACHE_TTL}"]
+      preprocessing:
+      - type: JSONPATH
+        parameters:
+        - $.total
+      tags:
+      - *id023
+      - *id024
+      - tag: item
+        value: total
+      - tag: modo
+        value: alerta_estatico
+      triggers:
+      - uuid: 5b66fc7787504f17962b8342345a6106
+        name: PON 1/12 down, possível rompimento
+        expression: last(/Template - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24
+          Unificado/pon.alert.total.1_12)>={$ONU.PON.MIN.CLIENTES} and last(/WNET
+          - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24 Unificado/pon.alert.los.1_12)=last(/WNET
+          - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24 Unificado/pon.alert.total.1_12)
+        priority: DISASTER
+        manual_close: 'YES'
+        description: Dispara quando todas as ONUs autorizadas da PON estão em LOS.
+          Indica possível rompimento, problema físico na fibra, splitter, CTO ou porta
+          PON.
+        tags:
+        - tag: class
+          value: network
+        - tag: evento
+          value: rompimento
+        - tag: pon
+          value: '1_12'
+    - uuid: 9bff89280aa945c0ac147602979eb3be
+      name: 'PON 1/12: ONUs em LOS para alerta'
+      type: DEPENDENT
+      key: pon.alert.los.1_12
+      delay: '0'
+      history: 90d
+      trends: 365d
+      value_type: UNSIGNED
+      master_item:
+        key: ponfh["1_12","json","{$OLT.SNMP.IP}","{$SNMP_COMMUNITY}","{$SNMP_PORT}","{$SNMP_TIMEOUT}","{$SNMP_RETRIES}","{$PONFH.CACHE_TTL}"]
+      preprocessing:
+      - type: JSONPATH
+        parameters:
+        - $.los
+      tags:
+      - *id023
+      - *id024
+      - tag: item
+        value: los
+      - tag: modo
+        value: alerta_estatico
+    - uuid: c3235312e97646cc8cb281ecd8f484a2
+      name: 'PON 1/12: ONUs sem energia para alerta'
+      type: DEPENDENT
+      key: pon.alert.energy.1_12
+      delay: '0'
+      history: 90d
+      trends: 365d
+      value_type: UNSIGNED
+      master_item:
+        key: ponfh["1_12","json","{$OLT.SNMP.IP}","{$SNMP_COMMUNITY}","{$SNMP_PORT}","{$SNMP_TIMEOUT}","{$SNMP_RETRIES}","{$PONFH.CACHE_TTL}"]
+      preprocessing:
+      - type: JSONPATH
+        parameters:
+        - $.sem_energia
+      tags:
+      - *id023
+      - *id024
+      - tag: item
+        value: sem_energia
+      - tag: modo
+        value: alerta_estatico
+      triggers:
+      - uuid: ba18d30a142643d0b13ab740f20f812f
+        name: 'PON 1/12: região sem energia, clientes off por falta de energia'
+        expression: last(/Template - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24
+          Unificado/pon.alert.total.1_12)>={$ONU.PON.MIN.CLIENTES} and last(/WNET
+          - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24 Unificado/pon.alert.energy.1_12)>={$ONU.ENERGIA.REGIAO.MIN}
+        priority: HIGH
+        manual_close: 'YES'
+        description: Dispara quando várias ONUs da mesma PON entram em Dying Gasp/sem
+          energia. Indica provável falta de energia na região/área atendida pela PON.
+        tags:
+        - tag: class
+          value: power
+        - tag: evento
+          value: sem_energia
+        - tag: pon
+          value: '1_12'
+    - uuid: d173a977ff57482bb5d8f702d3dea583
+      name: 'PON 1/13: cache JSON para alertas estáticos'
+      type: EXTERNAL
+      key: ponfh["1_13","json","{$OLT.SNMP.IP}","{$SNMP_COMMUNITY}","{$SNMP_PORT}","{$SNMP_TIMEOUT}","{$SNMP_RETRIES}","{$PONFH.CACHE_TTL}"]
+      delay: 2m
+      history: 1d
+      trends: '0'
+      value_type: TEXT
+      tags:
+      - &id025
+        tag: componente
+        value: PON
+      - &id026
+        tag: pon
+        value: '1_13'
+      - tag: item
+        value: cache_json
+      - tag: modo
+        value: alerta_estatico
+    - uuid: 81aee4ed72744a00bc92f2e9a61af427
+      name: 'PON 1/13: total de ONUs autorizadas para alerta'
+      type: DEPENDENT
+      key: pon.alert.total.1_13
+      delay: '0'
+      history: 90d
+      trends: 365d
+      value_type: UNSIGNED
+      master_item:
+        key: ponfh["1_13","json","{$OLT.SNMP.IP}","{$SNMP_COMMUNITY}","{$SNMP_PORT}","{$SNMP_TIMEOUT}","{$SNMP_RETRIES}","{$PONFH.CACHE_TTL}"]
+      preprocessing:
+      - type: JSONPATH
+        parameters:
+        - $.total
+      tags:
+      - *id025
+      - *id026
+      - tag: item
+        value: total
+      - tag: modo
+        value: alerta_estatico
+      triggers:
+      - uuid: f001a42462fe4ddb9c148d61e9d8deef
+        name: PON 1/13 down, possível rompimento
+        expression: last(/Template - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24
+          Unificado/pon.alert.total.1_13)>={$ONU.PON.MIN.CLIENTES} and last(/WNET
+          - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24 Unificado/pon.alert.los.1_13)=last(/WNET
+          - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24 Unificado/pon.alert.total.1_13)
+        priority: DISASTER
+        manual_close: 'YES'
+        description: Dispara quando todas as ONUs autorizadas da PON estão em LOS.
+          Indica possível rompimento, problema físico na fibra, splitter, CTO ou porta
+          PON.
+        tags:
+        - tag: class
+          value: network
+        - tag: evento
+          value: rompimento
+        - tag: pon
+          value: '1_13'
+    - uuid: a20b33a6d7704f34a360047a6daf9186
+      name: 'PON 1/13: ONUs em LOS para alerta'
+      type: DEPENDENT
+      key: pon.alert.los.1_13
+      delay: '0'
+      history: 90d
+      trends: 365d
+      value_type: UNSIGNED
+      master_item:
+        key: ponfh["1_13","json","{$OLT.SNMP.IP}","{$SNMP_COMMUNITY}","{$SNMP_PORT}","{$SNMP_TIMEOUT}","{$SNMP_RETRIES}","{$PONFH.CACHE_TTL}"]
+      preprocessing:
+      - type: JSONPATH
+        parameters:
+        - $.los
+      tags:
+      - *id025
+      - *id026
+      - tag: item
+        value: los
+      - tag: modo
+        value: alerta_estatico
+    - uuid: 7be408008c554708af85788b2108ca8a
+      name: 'PON 1/13: ONUs sem energia para alerta'
+      type: DEPENDENT
+      key: pon.alert.energy.1_13
+      delay: '0'
+      history: 90d
+      trends: 365d
+      value_type: UNSIGNED
+      master_item:
+        key: ponfh["1_13","json","{$OLT.SNMP.IP}","{$SNMP_COMMUNITY}","{$SNMP_PORT}","{$SNMP_TIMEOUT}","{$SNMP_RETRIES}","{$PONFH.CACHE_TTL}"]
+      preprocessing:
+      - type: JSONPATH
+        parameters:
+        - $.sem_energia
+      tags:
+      - *id025
+      - *id026
+      - tag: item
+        value: sem_energia
+      - tag: modo
+        value: alerta_estatico
+      triggers:
+      - uuid: 65d1b29523cd45e681e65a7d567b2996
+        name: 'PON 1/13: região sem energia, clientes off por falta de energia'
+        expression: last(/Template - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24
+          Unificado/pon.alert.total.1_13)>={$ONU.PON.MIN.CLIENTES} and last(/WNET
+          - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24 Unificado/pon.alert.energy.1_13)>={$ONU.ENERGIA.REGIAO.MIN}
+        priority: HIGH
+        manual_close: 'YES'
+        description: Dispara quando várias ONUs da mesma PON entram em Dying Gasp/sem
+          energia. Indica provável falta de energia na região/área atendida pela PON.
+        tags:
+        - tag: class
+          value: power
+        - tag: evento
+          value: sem_energia
+        - tag: pon
+          value: '1_13'
+    - uuid: 06b09654e174484b94975e5ca24ce5c6
+      name: 'PON 1/14: cache JSON para alertas estáticos'
+      type: EXTERNAL
+      key: ponfh["1_14","json","{$OLT.SNMP.IP}","{$SNMP_COMMUNITY}","{$SNMP_PORT}","{$SNMP_TIMEOUT}","{$SNMP_RETRIES}","{$PONFH.CACHE_TTL}"]
+      delay: 2m
+      history: 1d
+      trends: '0'
+      value_type: TEXT
+      tags:
+      - &id027
+        tag: componente
+        value: PON
+      - &id028
+        tag: pon
+        value: '1_14'
+      - tag: item
+        value: cache_json
+      - tag: modo
+        value: alerta_estatico
+    - uuid: 05a25e1c623a4b839a866270b9fd2fb3
+      name: 'PON 1/14: total de ONUs autorizadas para alerta'
+      type: DEPENDENT
+      key: pon.alert.total.1_14
+      delay: '0'
+      history: 90d
+      trends: 365d
+      value_type: UNSIGNED
+      master_item:
+        key: ponfh["1_14","json","{$OLT.SNMP.IP}","{$SNMP_COMMUNITY}","{$SNMP_PORT}","{$SNMP_TIMEOUT}","{$SNMP_RETRIES}","{$PONFH.CACHE_TTL}"]
+      preprocessing:
+      - type: JSONPATH
+        parameters:
+        - $.total
+      tags:
+      - *id027
+      - *id028
+      - tag: item
+        value: total
+      - tag: modo
+        value: alerta_estatico
+      triggers:
+      - uuid: 944afd929a434b45a2c8d253bdb19f8c
+        name: PON 1/14 down, possível rompimento
+        expression: last(/Template - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24
+          Unificado/pon.alert.total.1_14)>={$ONU.PON.MIN.CLIENTES} and last(/WNET
+          - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24 Unificado/pon.alert.los.1_14)=last(/WNET
+          - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24 Unificado/pon.alert.total.1_14)
+        priority: DISASTER
+        manual_close: 'YES'
+        description: Dispara quando todas as ONUs autorizadas da PON estão em LOS.
+          Indica possível rompimento, problema físico na fibra, splitter, CTO ou porta
+          PON.
+        tags:
+        - tag: class
+          value: network
+        - tag: evento
+          value: rompimento
+        - tag: pon
+          value: '1_14'
+    - uuid: bd330ffa36154e35a6f002a5af60a315
+      name: 'PON 1/14: ONUs em LOS para alerta'
+      type: DEPENDENT
+      key: pon.alert.los.1_14
+      delay: '0'
+      history: 90d
+      trends: 365d
+      value_type: UNSIGNED
+      master_item:
+        key: ponfh["1_14","json","{$OLT.SNMP.IP}","{$SNMP_COMMUNITY}","{$SNMP_PORT}","{$SNMP_TIMEOUT}","{$SNMP_RETRIES}","{$PONFH.CACHE_TTL}"]
+      preprocessing:
+      - type: JSONPATH
+        parameters:
+        - $.los
+      tags:
+      - *id027
+      - *id028
+      - tag: item
+        value: los
+      - tag: modo
+        value: alerta_estatico
+    - uuid: c0a9b6f0ba664c90be9841f7c4de5e38
+      name: 'PON 1/14: ONUs sem energia para alerta'
+      type: DEPENDENT
+      key: pon.alert.energy.1_14
+      delay: '0'
+      history: 90d
+      trends: 365d
+      value_type: UNSIGNED
+      master_item:
+        key: ponfh["1_14","json","{$OLT.SNMP.IP}","{$SNMP_COMMUNITY}","{$SNMP_PORT}","{$SNMP_TIMEOUT}","{$SNMP_RETRIES}","{$PONFH.CACHE_TTL}"]
+      preprocessing:
+      - type: JSONPATH
+        parameters:
+        - $.sem_energia
+      tags:
+      - *id027
+      - *id028
+      - tag: item
+        value: sem_energia
+      - tag: modo
+        value: alerta_estatico
+      triggers:
+      - uuid: b9ef335855304300958484973f280bed
+        name: 'PON 1/14: região sem energia, clientes off por falta de energia'
+        expression: last(/Template - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24
+          Unificado/pon.alert.total.1_14)>={$ONU.PON.MIN.CLIENTES} and last(/WNET
+          - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24 Unificado/pon.alert.energy.1_14)>={$ONU.ENERGIA.REGIAO.MIN}
+        priority: HIGH
+        manual_close: 'YES'
+        description: Dispara quando várias ONUs da mesma PON entram em Dying Gasp/sem
+          energia. Indica provável falta de energia na região/área atendida pela PON.
+        tags:
+        - tag: class
+          value: power
+        - tag: evento
+          value: sem_energia
+        - tag: pon
+          value: '1_14'
+    - uuid: e0f5de7863ac4e27971c7915c8ada973
+      name: 'PON 1/15: cache JSON para alertas estáticos'
+      type: EXTERNAL
+      key: ponfh["1_15","json","{$OLT.SNMP.IP}","{$SNMP_COMMUNITY}","{$SNMP_PORT}","{$SNMP_TIMEOUT}","{$SNMP_RETRIES}","{$PONFH.CACHE_TTL}"]
+      delay: 2m
+      history: 1d
+      trends: '0'
+      value_type: TEXT
+      tags:
+      - &id029
+        tag: componente
+        value: PON
+      - &id030
+        tag: pon
+        value: '1_15'
+      - tag: item
+        value: cache_json
+      - tag: modo
+        value: alerta_estatico
+    - uuid: 3daecc31454649df96d17565c58ee2a6
+      name: 'PON 1/15: total de ONUs autorizadas para alerta'
+      type: DEPENDENT
+      key: pon.alert.total.1_15
+      delay: '0'
+      history: 90d
+      trends: 365d
+      value_type: UNSIGNED
+      master_item:
+        key: ponfh["1_15","json","{$OLT.SNMP.IP}","{$SNMP_COMMUNITY}","{$SNMP_PORT}","{$SNMP_TIMEOUT}","{$SNMP_RETRIES}","{$PONFH.CACHE_TTL}"]
+      preprocessing:
+      - type: JSONPATH
+        parameters:
+        - $.total
+      tags:
+      - *id029
+      - *id030
+      - tag: item
+        value: total
+      - tag: modo
+        value: alerta_estatico
+      triggers:
+      - uuid: 3a53cef99e0341b7b3b1678d6b7d083b
+        name: PON 1/15 down, possível rompimento
+        expression: last(/Template - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24
+          Unificado/pon.alert.total.1_15)>={$ONU.PON.MIN.CLIENTES} and last(/WNET
+          - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24 Unificado/pon.alert.los.1_15)=last(/WNET
+          - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24 Unificado/pon.alert.total.1_15)
+        priority: DISASTER
+        manual_close: 'YES'
+        description: Dispara quando todas as ONUs autorizadas da PON estão em LOS.
+          Indica possível rompimento, problema físico na fibra, splitter, CTO ou porta
+          PON.
+        tags:
+        - tag: class
+          value: network
+        - tag: evento
+          value: rompimento
+        - tag: pon
+          value: '1_15'
+    - uuid: 5f7490c68af649f187ac2f16d54be315
+      name: 'PON 1/15: ONUs em LOS para alerta'
+      type: DEPENDENT
+      key: pon.alert.los.1_15
+      delay: '0'
+      history: 90d
+      trends: 365d
+      value_type: UNSIGNED
+      master_item:
+        key: ponfh["1_15","json","{$OLT.SNMP.IP}","{$SNMP_COMMUNITY}","{$SNMP_PORT}","{$SNMP_TIMEOUT}","{$SNMP_RETRIES}","{$PONFH.CACHE_TTL}"]
+      preprocessing:
+      - type: JSONPATH
+        parameters:
+        - $.los
+      tags:
+      - *id029
+      - *id030
+      - tag: item
+        value: los
+      - tag: modo
+        value: alerta_estatico
+    - uuid: c1ad1b58554949638fec07505509dd9c
+      name: 'PON 1/15: ONUs sem energia para alerta'
+      type: DEPENDENT
+      key: pon.alert.energy.1_15
+      delay: '0'
+      history: 90d
+      trends: 365d
+      value_type: UNSIGNED
+      master_item:
+        key: ponfh["1_15","json","{$OLT.SNMP.IP}","{$SNMP_COMMUNITY}","{$SNMP_PORT}","{$SNMP_TIMEOUT}","{$SNMP_RETRIES}","{$PONFH.CACHE_TTL}"]
+      preprocessing:
+      - type: JSONPATH
+        parameters:
+        - $.sem_energia
+      tags:
+      - *id029
+      - *id030
+      - tag: item
+        value: sem_energia
+      - tag: modo
+        value: alerta_estatico
+      triggers:
+      - uuid: d1d68c11c9ca4c17ae5f164e14959629
+        name: 'PON 1/15: região sem energia, clientes off por falta de energia'
+        expression: last(/Template - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24
+          Unificado/pon.alert.total.1_15)>={$ONU.PON.MIN.CLIENTES} and last(/WNET
+          - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24 Unificado/pon.alert.energy.1_15)>={$ONU.ENERGIA.REGIAO.MIN}
+        priority: HIGH
+        manual_close: 'YES'
+        description: Dispara quando várias ONUs da mesma PON entram em Dying Gasp/sem
+          energia. Indica provável falta de energia na região/área atendida pela PON.
+        tags:
+        - tag: class
+          value: power
+        - tag: evento
+          value: sem_energia
+        - tag: pon
+          value: '1_15'
+    - uuid: 456c020eb66c4d50929c41aad80bf657
+      name: 'PON 1/16: cache JSON para alertas estáticos'
+      type: EXTERNAL
+      key: ponfh["1_16","json","{$OLT.SNMP.IP}","{$SNMP_COMMUNITY}","{$SNMP_PORT}","{$SNMP_TIMEOUT}","{$SNMP_RETRIES}","{$PONFH.CACHE_TTL}"]
+      delay: 2m
+      history: 1d
+      trends: '0'
+      value_type: TEXT
+      tags:
+      - &id031
+        tag: componente
+        value: PON
+      - &id032
+        tag: pon
+        value: '1_16'
+      - tag: item
+        value: cache_json
+      - tag: modo
+        value: alerta_estatico
+    - uuid: a2969ef67edc41a0a51583bfa5f7790e
+      name: 'PON 1/16: total de ONUs autorizadas para alerta'
+      type: DEPENDENT
+      key: pon.alert.total.1_16
+      delay: '0'
+      history: 90d
+      trends: 365d
+      value_type: UNSIGNED
+      master_item:
+        key: ponfh["1_16","json","{$OLT.SNMP.IP}","{$SNMP_COMMUNITY}","{$SNMP_PORT}","{$SNMP_TIMEOUT}","{$SNMP_RETRIES}","{$PONFH.CACHE_TTL}"]
+      preprocessing:
+      - type: JSONPATH
+        parameters:
+        - $.total
+      tags:
+      - *id031
+      - *id032
+      - tag: item
+        value: total
+      - tag: modo
+        value: alerta_estatico
+      triggers:
+      - uuid: 3c41dcb835154307b8b725d76f8fe93c
+        name: PON 1/16 down, possível rompimento
+        expression: last(/Template - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24
+          Unificado/pon.alert.total.1_16)>={$ONU.PON.MIN.CLIENTES} and last(/WNET
+          - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24 Unificado/pon.alert.los.1_16)=last(/WNET
+          - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24 Unificado/pon.alert.total.1_16)
+        priority: DISASTER
+        manual_close: 'YES'
+        description: Dispara quando todas as ONUs autorizadas da PON estão em LOS.
+          Indica possível rompimento, problema físico na fibra, splitter, CTO ou porta
+          PON.
+        tags:
+        - tag: class
+          value: network
+        - tag: evento
+          value: rompimento
+        - tag: pon
+          value: '1_16'
+    - uuid: 1811c936708a4a49a9f22acc3458d77b
+      name: 'PON 1/16: ONUs em LOS para alerta'
+      type: DEPENDENT
+      key: pon.alert.los.1_16
+      delay: '0'
+      history: 90d
+      trends: 365d
+      value_type: UNSIGNED
+      master_item:
+        key: ponfh["1_16","json","{$OLT.SNMP.IP}","{$SNMP_COMMUNITY}","{$SNMP_PORT}","{$SNMP_TIMEOUT}","{$SNMP_RETRIES}","{$PONFH.CACHE_TTL}"]
+      preprocessing:
+      - type: JSONPATH
+        parameters:
+        - $.los
+      tags:
+      - *id031
+      - *id032
+      - tag: item
+        value: los
+      - tag: modo
+        value: alerta_estatico
+    - uuid: f37220b6e3b34e78bf7008cdfd105305
+      name: 'PON 1/16: ONUs sem energia para alerta'
+      type: DEPENDENT
+      key: pon.alert.energy.1_16
+      delay: '0'
+      history: 90d
+      trends: 365d
+      value_type: UNSIGNED
+      master_item:
+        key: ponfh["1_16","json","{$OLT.SNMP.IP}","{$SNMP_COMMUNITY}","{$SNMP_PORT}","{$SNMP_TIMEOUT}","{$SNMP_RETRIES}","{$PONFH.CACHE_TTL}"]
+      preprocessing:
+      - type: JSONPATH
+        parameters:
+        - $.sem_energia
+      tags:
+      - *id031
+      - *id032
+      - tag: item
+        value: sem_energia
+      - tag: modo
+        value: alerta_estatico
+      triggers:
+      - uuid: 2ed185bf96554d6fbf00e8a1d2fe72fc
+        name: 'PON 1/16: região sem energia, clientes off por falta de energia'
+        expression: last(/Template - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24
+          Unificado/pon.alert.total.1_16)>={$ONU.PON.MIN.CLIENTES} and last(/WNET
+          - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24 Unificado/pon.alert.energy.1_16)>={$ONU.ENERGIA.REGIAO.MIN}
+        priority: HIGH
+        manual_close: 'YES'
+        description: Dispara quando várias ONUs da mesma PON entram em Dying Gasp/sem
+          energia. Indica provável falta de energia na região/área atendida pela PON.
+        tags:
+        - tag: class
+          value: power
+        - tag: evento
+          value: sem_energia
+        - tag: pon
+          value: '1_16'
+    discovery_rules:
+    - uuid: 2ebd7cec5ad94108b9b5d2b9bdc884b4
+      name: Descoberta de cards/slots da OLT
+      type: SNMP_AGENT
+      snmp_oid: discovery[{#CARD},.1.3.6.1.4.1.5875.800.3.101.1.1.1,{#CARDTYPE},.1.3.6.1.4.1.5875.800.3.9.2.1.1.2,{#CARDMENUTIL},.1.3.6.1.4.1.5875.800.3.9.2.1.1.9,{#CARDCPUULTIL},.1.3.6.1.4.1.5875.800.3.9.2.1.1.8]
+      key: fh.card.discovery
+      delay: 5m
+      lifetime: 30d
+      enabled_lifetime_type: DISABLE_NEVER
+      item_prototypes:
+      - uuid: 90f3cc2bb1eb4499add40e245f9c044e
+        name: 'Card {#CARD}: portas disponíveis'
+        type: SNMP_AGENT
+        snmp_oid: .1.3.6.1.4.1.5875.800.3.9.2.1.1.7.{#SNMPINDEX}
+        key: card.portas.disponiveis["{#CARD}"]
+        delay: 5m
+        history: 7d
+        trends: 30d
+        tags:
+        - tag: componente
+          value: Card
+        - tag: item
+          value: Portas disponíveis
+      - uuid: 229d9203ddc94f2b9a59ec16412876e3
+        name: 'Card {#CARD}: uso de CPU'
+        type: SNMP_AGENT
+        snmp_oid: .1.3.6.1.4.1.5875.800.3.9.2.1.1.8.{#SNMPINDEX}
+        key: card.cpu["{#CARD}"]
+        delay: 1m
+        history: 7d
+        trends: 30d
+        value_type: FLOAT
+        units: '%'
+        preprocessing:
+        - type: MULTIPLIER
+          parameters:
+          - '0.01'
+        tags:
+        - tag: componente
+          value: Card
+        - tag: item
+          value: CPU
+      - uuid: 7c0dce29e6ca40a4aa4a38c48f35a9c9
+        name: 'Card {#CARD}: versão de hardware'
+        type: SNMP_AGENT
+        snmp_oid: .1.3.6.1.4.1.5875.800.3.9.2.1.1.3.{#SNMPINDEX}
+        key: card.hardware.version["{#CARD}"]
+        delay: 1h
+        history: 30d
+        trends: '0'
+        value_type: CHAR
+        tags:
+        - tag: componente
+          value: Card
+        - tag: item
+          value: Versão hardware
+      - uuid: efd9da09bdc646fab78e7397caf3c88c
+        name: 'Card {#CARD}: uso de memória'
+        type: SNMP_AGENT
+        snmp_oid: .1.3.6.1.4.1.5875.800.3.9.2.1.1.9.{#SNMPINDEX}
+        key: card.memoria["{#CARD}"]
+        delay: 1m
+        history: 7d
+        trends: 30d
+        value_type: FLOAT
+        units: '%'
+        preprocessing:
+        - type: MULTIPLIER
+          parameters:
+          - '0.01'
+        tags:
+        - tag: componente
+          value: Card
+        - tag: item
+          value: Memória
+      - uuid: 8525c6449aa945e9ace0f26f1d05b9d3
+        name: 'Card {#CARD}: total de portas'
+        type: SNMP_AGENT
+        snmp_oid: .1.3.6.1.4.1.5875.800.3.9.2.1.1.6.{#SNMPINDEX}
+        key: card.portas.total["{#CARD}"]
+        delay: 5m
+        history: 7d
+        trends: 30d
+        tags:
+        - tag: componente
+          value: Card
+        - tag: item
+          value: Total de portas
+      - uuid: 0b39630132534fa58eb77dbd13010312
+        name: 'Card {#CARD}: versão de software'
+        type: SNMP_AGENT
+        snmp_oid: .1.3.6.1.4.1.5875.800.3.9.2.1.1.4.{#SNMPINDEX}
+        key: card.software.version["{#CARD}"]
+        delay: 1h
+        history: 30d
+        trends: '0'
+        value_type: CHAR
+        tags:
+        - tag: componente
+          value: Card
+        - tag: item
+          value: Versão software
+      - uuid: a07503e2dfff4fb9bbb4c8b38e3f25b9
+        name: 'Card {#CARD}: status operacional'
+        type: SNMP_AGENT
+        snmp_oid: .1.3.6.1.4.1.5875.800.3.9.2.1.1.5.{#SNMPINDEX}
+        key: card.status["{#CARD}"]
+        delay: 5m
+        history: 7d
+        trends: 30d
+        valuemap:
+          name: 'FiberHome: status operacional'
+        tags:
+        - tag: componente
+          value: Card
+        - tag: item
+          value: Status
+      - uuid: d088571ff2414e9d985f04c92a7d338f
+        name: 'Card {#CARD}: tipo do card'
+        type: SNMP_AGENT
+        snmp_oid: .1.3.6.1.4.1.5875.800.3.9.2.1.1.2.{#SNMPINDEX}
+        key: card.tipo["{#CARD}"]
+        delay: 5m
+        history: 7d
+        trends: 30d
+        valuemap:
+          name: 'FiberHome: tipo do card'
+        tags:
+        - tag: componente
+          value: Card
+        - tag: item
+          value: Tipo
+      - uuid: 377cee5fbf59439f891d042c4bb5541e
+        name: 'Card {#CARD}: índice do slot'
+        type: SNMP_AGENT
+        snmp_oid: .1.3.6.1.4.1.5875.800.3.101.1.1.1.{#SNMPINDEX}
+        key: card.slot.index["{#CARD}"]
+        delay: 5m
+        history: 7d
+        trends: 30d
+        tags:
+        - tag: componente
+          value: Card
+        - tag: item
+          value: Índice
+      graph_prototypes:
+      - uuid: 2b753d03015b43f798f97723db554a7d
+        name: 'Card {#CARD}: CPU e memória'
+        graph_items:
+        - color: 199C0D
+          item:
+            host: Template - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24 Unificado
+            key: card.cpu["{#CARD}"]
+        - color: F63100
+          item:
+            host: Template - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24 Unificado
+            key: card.memoria["{#CARD}"]
+      - uuid: 80292f74bb0a4357aa1dd805d3e19764
+        name: 'Card {#CARD}: portas'
+        graph_items:
+        - color: 2774A4
+          item:
+            host: Template - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24 Unificado
+            key: card.portas.total["{#CARD}"]
+        - color: 6C59DC
+          item:
+            host: Template - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24 Unificado
+            key: card.portas.disponiveis["{#CARD}"]
+      description: '
+
+        V3.2: intervalo reduzido para acelerar a criação dos itens durante os testes.
+        Em produção, pode aumentar para 1h/1d se desejar.'
+      trigger_prototypes:
+      - uuid: 17576c2ab1774ab5aba5591d8370ffb8
+        expression: avg(/Template - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24
+          Unificado/card.cpu["{#CARD}"],5m)>{$CPU.UTIL.WARN}
+        name: 'Card {#CARD}: CPU alta acima de {$CPU.UTIL.WARN}% por 5 minutos'
+        priority: WARNING
+        manual_close: 'YES'
+        recovery_mode: RECOVERY_EXPRESSION
+        recovery_expression: avg(/Template - OLT Intelbras FiberHome AN6001-G16 SNMP Direto
+          V5.24 Unificado/card.cpu["{#CARD}"],5m)<({$CPU.UTIL.WARN}-5)
+      - uuid: 0f9ddcacbc06484c80263d006b02b8c2
+        expression: avg(/Template - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24
+          Unificado/card.memoria["{#CARD}"],5m)>{$MEM.UTIL.WARN}
+        name: 'Card {#CARD}: memória alta acima de {$MEM.UTIL.WARN}% por 5 minutos'
+        priority: WARNING
+        manual_close: 'YES'
+        recovery_mode: RECOVERY_EXPRESSION
+        recovery_expression: avg(/Template - OLT Intelbras FiberHome AN6001-G16 SNMP Direto
+          V5.24 Unificado/card.memoria["{#CARD}"],5m)<({$MEM.UTIL.WARN}-5)
+        status: DISABLED
+        description: Desativado por padrão conforme ajuste operacional.
+      - uuid: efbc348378dd43aa8b8db4b251848d9d
+        expression: last(/Template - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24
+          Unificado/card.status["{#CARD}"])=0
+        name: 'Card {#CARD}: status operacional alterado/indisponível'
+        priority: AVERAGE
+        manual_close: 'YES'
+        recovery_mode: RECOVERY_EXPRESSION
+        recovery_expression: last(/Template - OLT Intelbras FiberHome AN6001-G16 SNMP
+          Direto V5.24 Unificado/card.status["{#CARD}"])=1
+    - uuid: ad34a1c4a30a46bca728ec7fdb6b8a93
+      name: Descoberta de CPU e memória da gerência
+      type: SNMP_AGENT
+      snmp_oid: discovery[{#MGRCARDTYPE},.1.3.6.1.4.1.5875.800.3.9.8.1.1.1,{#CARDTYPEMGR},.1.3.6.1.4.1.5875.800.3.9.8.1.1.1,{#MGRCARDWORKSTATUS},.1.3.6.1.4.1.5875.800.3.9.8.1.1.4]
+      key: fh.gerencia.discovery
+      delay: 5m
+      lifetime: 30d
+      enabled_lifetime_type: DISABLE_NEVER
+      item_prototypes:
+      - uuid: 6239c88efb9540f89e1045f4c7120a36
+        name: 'Gerência {#MGRCARDTYPE}: uso de CPU'
+        type: SNMP_AGENT
+        snmp_oid: .1.3.6.1.4.1.5875.800.3.9.8.1.1.5.{#SNMPINDEX}
+        key: gerencia.cpu["{#MGRCARDTYPE}"]
+        delay: 1m
+        history: 7d
+        trends: 30d
+        value_type: FLOAT
+        units: '%'
+        preprocessing:
+        - type: MULTIPLIER
+          parameters:
+          - '0.01'
+        tags:
+        - tag: componente
+          value: Gerência
+        - tag: item
+          value: CPU
+      - uuid: 96014ecc5bad44c4be349e967bd392ef
+        name: 'Gerência {#MGRCARDTYPE}: uso de memória'
+        type: SNMP_AGENT
+        snmp_oid: .1.3.6.1.4.1.5875.800.3.9.8.1.1.6.{#SNMPINDEX}
+        key: gerencia.memoria["{#MGRCARDTYPE}"]
+        delay: 1m
+        history: 7d
+        trends: 30d
+        value_type: FLOAT
+        units: '%'
+        preprocessing:
+        - type: MULTIPLIER
+          parameters:
+          - '0.01'
+        tags:
+        - tag: componente
+          value: Gerência
+        - tag: item
+          value: Memória
+      - uuid: 764915265c9a4a13a941eb16f9645568
+        name: 'Gerência {#MGRCARDTYPE}: tipo do card'
+        type: SNMP_AGENT
+        snmp_oid: .1.3.6.1.4.1.5875.800.3.9.8.1.1.1.{#SNMPINDEX}
+        key: gerencia.tipo["{#MGRCARDTYPE}"]
+        delay: 5m
+        history: 7d
+        trends: 30d
+        valuemap:
+          name: 'FiberHome: tipo do card de gerência'
+        tags:
+        - tag: componente
+          value: Gerência
+        - tag: item
+          value: Tipo
+      graph_prototypes:
+      - uuid: 3c832d440bca4d45b601ba2c3e0293b8
+        name: 'Gerência {#MGRCARDTYPE}: CPU e memória'
+        graph_items:
+        - color: 199C0D
+          item:
+            host: Template - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24 Unificado
+            key: gerencia.cpu["{#MGRCARDTYPE}"]
+        - color: F63100
+          item:
+            host: Template - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24 Unificado
+            key: gerencia.memoria["{#MGRCARDTYPE}"]
+      description: '
+
+        V3.2: intervalo reduzido para acelerar a criação dos itens durante os testes.
+        Em produção, pode aumentar para 1h/1d se desejar.'
+      trigger_prototypes:
+      - uuid: df74ce3f0a6b4c6592244736ecd5d848
+        expression: avg(/Template - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24
+          Unificado/gerencia.cpu["{#MGRCARDTYPE}"],5m)>{$CPU.UTIL.WARN}
+        name: 'Gerência {#MGRCARDTYPE}: CPU alta acima de {$CPU.UTIL.WARN}% por 5
+          minutos'
+        priority: WARNING
+        manual_close: 'YES'
+        recovery_mode: RECOVERY_EXPRESSION
+        recovery_expression: avg(/Template - OLT Intelbras FiberHome AN6001-G16 SNMP Direto
+          V5.24 Unificado/gerencia.cpu["{#MGRCARDTYPE}"],5m)<({$CPU.UTIL.WARN}-5)
+      - uuid: 6ddf03cb84f6400ab1aabe8f1d40f525
+        expression: avg(/Template - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24
+          Unificado/gerencia.memoria["{#MGRCARDTYPE}"],5m)>{$MEM.UTIL.WARN}
+        name: 'Gerência {#MGRCARDTYPE}: memória alta acima de {$MEM.UTIL.WARN}% por
+          5 minutos'
+        priority: WARNING
+        manual_close: 'YES'
+        recovery_mode: RECOVERY_EXPRESSION
+        recovery_expression: avg(/Template - OLT Intelbras FiberHome AN6001-G16 SNMP Direto
+          V5.24 Unificado/gerencia.memoria["{#MGRCARDTYPE}"],5m)<({$MEM.UTIL.WARN}-5)
+        status: DISABLED
+        description: Desativado por padrão conforme ajuste operacional.
+    - uuid: d7d3f56118e947bfba4998514263e482
+      name: Descoberta de portas PON - dinâmica
+      type: EXTERNAL
+      key: ponfh["--lld-v514","{$OLT.SNMP.IP}","{$SNMP_COMMUNITY}","{$SNMP_PORT}","{$SNMP_TIMEOUT}","{$SNMP_RETRIES}","{$PONFH.CACHE_TTL}"]
+      delay: 2m
+      lifetime: 30d
+      enabled_lifetime_type: DISABLE_NEVER
+      item_prototypes:
+      - uuid: 65e1614591a94ca2b092e6e49c0879ab
+        name: 'PON {#PON}: total de ONUs autorizadas'
+        type: EXTERNAL
+        key: ponfh["{#PON}","total","{$OLT.SNMP.IP}","{$SNMP_COMMUNITY}","{$SNMP_PORT}","{$SNMP_TIMEOUT}","{$SNMP_RETRIES}","{$PONFH.CACHE_TTL}"]
+        delay: 2m
+        history: 7d
+        trends: 30d
+        tags:
+        - tag: componente
+          value: PON
+        - tag: item
+          value: ONUs autorizadas
+        description: Total calculado pelo script ponfh usando a tabela de ONUs autorizadas
+          da própria OLT via SNMP.
+      - uuid: 62e4bbfce8574a09b9ad78a8bf34a05a
+        name: 'PON {#PON}: ONUs em LOS'
+        type: EXTERNAL
+        key: ponfh["{#PON}","0","{$OLT.SNMP.IP}","{$SNMP_COMMUNITY}","{$SNMP_PORT}","{$SNMP_TIMEOUT}","{$SNMP_RETRIES}","{$PONFH.CACHE_TTL}"]
+        delay: 2m
+        history: 7d
+        trends: 30d
+        tags:
+        - tag: componente
+          value: PON
+        - tag: item
+          value: ONUs LOS
+        description: Contagem calculada pelo script externo ponfh consultando a tabela
+          de ONUs autorizadas da própria OLT via SNMP. Não usa banco BeeSoft/MySQL.
+      - uuid: f1f05917b3034b0bbdf6473a4cb40730
+        name: 'PON {#PON}: ONUs online'
+        type: EXTERNAL
+        key: ponfh["{#PON}","1","{$OLT.SNMP.IP}","{$SNMP_COMMUNITY}","{$SNMP_PORT}","{$SNMP_TIMEOUT}","{$SNMP_RETRIES}","{$PONFH.CACHE_TTL}"]
+        delay: 2m
+        history: 7d
+        trends: 30d
+        tags:
+        - tag: componente
+          value: PON
+        - tag: item
+          value: ONUs online
+        description: Contagem calculada pelo script externo ponfh consultando a tabela
+          de ONUs autorizadas da própria OLT via SNMP. Não usa banco BeeSoft/MySQL.
+      - uuid: cddafb59f77342ea87f461574883f570
+        name: 'PON {#PON}: ONUs offline'
+        type: EXTERNAL
+        key: ponfh["{#PON}","2","{$OLT.SNMP.IP}","{$SNMP_COMMUNITY}","{$SNMP_PORT}","{$SNMP_TIMEOUT}","{$SNMP_RETRIES}","{$PONFH.CACHE_TTL}"]
+        delay: 2m
+        history: 7d
+        trends: 30d
+        tags:
+        - tag: componente
+          value: PON
+        - tag: item
+          value: ONUs offline
+        description: Contagem calculada pelo script externo ponfh consultando a tabela
+          de ONUs autorizadas da própria OLT via SNMP. Não usa banco BeeSoft/MySQL.
+      - uuid: eaa9e18219c34fa6b828b2211a754b26
+        name: 'PON {#PON}: ONUs sem dados'
+        type: EXTERNAL
+        key: ponfh["{#PON}","3","{$OLT.SNMP.IP}","{$SNMP_COMMUNITY}","{$SNMP_PORT}","{$SNMP_TIMEOUT}","{$SNMP_RETRIES}","{$PONFH.CACHE_TTL}"]
+        delay: 2m
+        history: 7d
+        trends: 30d
+        tags:
+        - tag: componente
+          value: PON
+        - tag: item
+          value: ONUs sem dados
+        description: Contagem calculada pelo script externo ponfh consultando a tabela
+          de ONUs autorizadas da própria OLT via SNMP. Não usa banco BeeSoft/MySQL.
+      - uuid: 8c6f74a8682245409dfc7bf50f2073f0
+        name: 'PON {#PON}: ONUs sem energia'
+        type: EXTERNAL
+        key: ponfh["{#PON}","4","{$OLT.SNMP.IP}","{$SNMP_COMMUNITY}","{$SNMP_PORT}","{$SNMP_TIMEOUT}","{$SNMP_RETRIES}","{$PONFH.CACHE_TTL}"]
+        delay: 2m
+        history: 7d
+        trends: 30d
+        tags:
+        - tag: componente
+          value: PON
+        - tag: item
+          value: ONUs sem energia
+        description: Contagem calculada pelo script externo ponfh consultando a tabela
+          de ONUs autorizadas da própria OLT via SNMP. Não usa banco BeeSoft/MySQL.
+      - uuid: 1e9d8be6903e4f1b8d8f22a87f0f3593
+        name: 'PON {#PON}: clientes online (%)'
+        type: EXTERNAL
+        key: ponfh["{#PON}","online_percent","{$OLT.SNMP.IP}","{$SNMP_COMMUNITY}","{$SNMP_PORT}","{$SNMP_TIMEOUT}","{$SNMP_RETRIES}","{$PONFH.CACHE_TTL}"]
+        delay: 2m
+        history: 90d
+        trends: 365d
+        value_type: FLOAT
+        tags:
+        - tag: componente
+          value: PON
+        - tag: item
+          value: Clientes
+        units: '%'
+        description: Percentual de ONUs online em relação ao total autorizado da PON.
+      - uuid: d5d2163371174585bcfa9ed6b4bb3952
+        name: 'PON {#PON}: clientes offline/indisponíveis (%)'
+        type: EXTERNAL
+        key: ponfh["{#PON}","down_percent","{$OLT.SNMP.IP}","{$SNMP_COMMUNITY}","{$SNMP_PORT}","{$SNMP_TIMEOUT}","{$SNMP_RETRIES}","{$PONFH.CACHE_TTL}"]
+        delay: 2m
+        history: 90d
+        trends: 365d
+        value_type: FLOAT
+        tags:
+        - tag: componente
+          value: PON
+        - tag: item
+          value: Clientes
+        units: '%'
+        description: Percentual de ONUs indisponíveis na PON, considerando Offline,
+          LOS, Sem dados e Sem energia.
+      - uuid: 1c92d06d371d40f7a39c01b9731a2ad6
+        name: 'PON {#PON}: clientes offline/indisponíveis'
+        type: EXTERNAL
+        key: ponfh["{#PON}","down","{$OLT.SNMP.IP}","{$SNMP_COMMUNITY}","{$SNMP_PORT}","{$SNMP_TIMEOUT}","{$SNMP_RETRIES}","{$PONFH.CACHE_TTL}"]
+        delay: 2m
+        history: 90d
+        trends: 365d
+        value_type: UNSIGNED
+        tags:
+        - tag: componente
+          value: PON
+        - tag: item
+          value: Clientes
+        description: Quantidade de ONUs indisponíveis na PON, considerando Offline,
+          LOS, Sem dados e Sem energia.
+      graph_prototypes:
+      - uuid: fa5d201d64e94e63a39938b39ea33f1b
+        name: 'PON {#PON}: ONUs por status'
+        graph_items:
+        - color: 2774A4
+          item:
+            host: Template - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24 Unificado
+            key: ponfh["{#PON}","total","{$OLT.SNMP.IP}","{$SNMP_COMMUNITY}","{$SNMP_PORT}","{$SNMP_TIMEOUT}","{$SNMP_RETRIES}","{$PONFH.CACHE_TTL}"]
+        - color: 199C0D
+          item:
+            host: Template - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24 Unificado
+            key: ponfh["{#PON}","1","{$OLT.SNMP.IP}","{$SNMP_COMMUNITY}","{$SNMP_PORT}","{$SNMP_TIMEOUT}","{$SNMP_RETRIES}","{$PONFH.CACHE_TTL}"]
+        - color: F63100
+          item:
+            host: Template - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24 Unificado
+            key: ponfh["{#PON}","2","{$OLT.SNMP.IP}","{$SNMP_COMMUNITY}","{$SNMP_PORT}","{$SNMP_TIMEOUT}","{$SNMP_RETRIES}","{$PONFH.CACHE_TTL}"]
+        - color: E33734
+          item:
+            host: Template - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24 Unificado
+            key: ponfh["{#PON}","0","{$OLT.SNMP.IP}","{$SNMP_COMMUNITY}","{$SNMP_PORT}","{$SNMP_TIMEOUT}","{$SNMP_RETRIES}","{$PONFH.CACHE_TTL}"]
+        - color: 6C59DC
+          item:
+            host: Template - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24 Unificado
+            key: ponfh["{#PON}","3","{$OLT.SNMP.IP}","{$SNMP_COMMUNITY}","{$SNMP_PORT}","{$SNMP_TIMEOUT}","{$SNMP_RETRIES}","{$PONFH.CACHE_TTL}"]
+        - color: FFB300
+          item:
+            host: Template - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24 Unificado
+            key: ponfh["{#PON}","4","{$OLT.SNMP.IP}","{$SNMP_COMMUNITY}","{$SNMP_PORT}","{$SNMP_TIMEOUT}","{$SNMP_RETRIES}","{$PONFH.CACHE_TTL}"]
+      - uuid: fdeec9c1141641908cbcd1be0e307834
+        name: 'PON {#PON}: percentual de clientes'
+        graph_items:
+        - color: 00AA00
+          item:
+            host: Template - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24 Unificado
+            key: ponfh["{#PON}","online_percent","{$OLT.SNMP.IP}","{$SNMP_COMMUNITY}","{$SNMP_PORT}","{$SNMP_TIMEOUT}","{$SNMP_RETRIES}","{$PONFH.CACHE_TTL}"]
+        - sortorder: '1'
+          color: FF8000
+          item:
+            host: Template - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24 Unificado
+            key: ponfh["{#PON}","down_percent","{$OLT.SNMP.IP}","{$SNMP_COMMUNITY}","{$SNMP_PORT}","{$SNMP_TIMEOUT}","{$SNMP_RETRIES}","{$PONFH.CACHE_TTL}"]
+      description: Descoberta dinâmica das PONs via script ponfh. V5.14 usa chave
+        LLD nova (--lld-v514) para forçar recriação dos recursos e dos triggers de
+        PON.
+      trigger_prototypes:
+      - uuid: dccd5e4f7b344e378c59c0e719a8d1b7
+        expression: last(/Template - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24
+          Unificado/ponfh["{#PON}","0","{$OLT.SNMP.IP}","{$SNMP_COMMUNITY}","{$SNMP_PORT}","{$SNMP_TIMEOUT}","{$SNMP_RETRIES}","{$PONFH.CACHE_TTL}"])>={$ONU.LOS.WARN}
+          and last(/Template - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24 Unificado/ponfh["{#PON}","0","{$OLT.SNMP.IP}","{$SNMP_COMMUNITY}","{$SNMP_PORT}","{$SNMP_TIMEOUT}","{$SNMP_RETRIES}","{$PONFH.CACHE_TTL}"])<last(/WNET
+          - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24 Unificado/ponfh["{#PON}","total","{$OLT.SNMP.IP}","{$SNMP_COMMUNITY}","{$SNMP_PORT}","{$SNMP_TIMEOUT}","{$SNMP_RETRIES}","{$PONFH.CACHE_TTL}"])
+        name: 'PON {#PON}: ONUs em LOS, possível problema na fibra'
+        priority: AVERAGE
+        manual_close: 'YES'
+        description: Dispara quando parte das ONUs da PON está em LOS, mas nem todas.
+          Indica possível problema em atendimento parcial, drop, caixa ou ramal.
+        tags:
+        - tag: classe
+          value: fibra
+        - tag: componente
+          value: PON
+        - tag: class
+          value: pon
+        - tag: component
+          value: PON
+        - tag: item
+          value: Status ONU
+      - uuid: 148a4d2cdede479984176bb5c11b80ac
+        expression: last(/Template - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24
+          Unificado/ponfh["{#PON}","total","{$OLT.SNMP.IP}","{$SNMP_COMMUNITY}","{$SNMP_PORT}","{$SNMP_TIMEOUT}","{$SNMP_RETRIES}","{$PONFH.CACHE_TTL}"])>={$ONU.PON.MIN.CLIENTES}
+          and last(/Template - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24 Unificado/ponfh["{#PON}","down_percent","{$OLT.SNMP.IP}","{$SNMP_COMMUNITY}","{$SNMP_PORT}","{$SNMP_TIMEOUT}","{$SNMP_RETRIES}","{$PONFH.CACHE_TTL}"])>={$ONU.QUEDA30.PERCENT}
+          and last(/Template - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24 Unificado/ponfh["{#PON}","down_percent","{$OLT.SNMP.IP}","{$SNMP_COMMUNITY}","{$SNMP_PORT}","{$SNMP_TIMEOUT}","{$SNMP_RETRIES}","{$PONFH.CACHE_TTL}"])<{$ONU.QUEDA50.PERCENT}
+        name: 'PON {#PON}: queda de 30% dos clientes da PON'
+        priority: AVERAGE
+        manual_close: 'YES'
+        description: Dispara quando o percentual de clientes indisponíveis da PON
+          atinge a macro {$ONU.QUEDA30.PERCENT}, mas ainda está abaixo da macro {$ONU.QUEDA50.PERCENT}.
+        tags:
+        - tag: classe
+          value: clientes
+        - tag: componente
+          value: PON
+        - tag: class
+          value: pon
+        - tag: component
+          value: PON
+        - tag: item
+          value: Status ONU
+      - uuid: 8107251a19ed416eb4a5b6e1a95ff7c0
+        expression: last(/Template - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24
+          Unificado/ponfh["{#PON}","total","{$OLT.SNMP.IP}","{$SNMP_COMMUNITY}","{$SNMP_PORT}","{$SNMP_TIMEOUT}","{$SNMP_RETRIES}","{$PONFH.CACHE_TTL}"])>={$ONU.PON.MIN.CLIENTES}
+          and last(/Template - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24 Unificado/ponfh["{#PON}","down_percent","{$OLT.SNMP.IP}","{$SNMP_COMMUNITY}","{$SNMP_PORT}","{$SNMP_TIMEOUT}","{$SNMP_RETRIES}","{$PONFH.CACHE_TTL}"])>={$ONU.QUEDA50.PERCENT}
+        name: 'PON {#PON}: queda de 50% dos clientes da PON'
+        priority: HIGH
+        manual_close: 'YES'
+        description: Dispara quando o percentual de clientes indisponíveis da PON
+          atinge a macro {$ONU.QUEDA50.PERCENT}.
+        tags:
+        - tag: classe
+          value: clientes
+        - tag: componente
+          value: PON
+        - tag: class
+          value: pon
+        - tag: component
+          value: PON
+        - tag: item
+          value: Status ONU
+    - uuid: 1b76c545757444b78b6ddc5323e0b896
+      name: Descoberta de interfaces de tráfego via IF-MIB
+      type: SNMP_AGENT
+      snmp_oid: discovery[{#IFNAME},1.3.6.1.2.1.31.1.1.1.1,{#IFALIAS},1.3.6.1.2.1.31.1.1.1.18,{#IFDESCR},1.3.6.1.2.1.2.2.1.2,{#IFOPERSTATUS},1.3.6.1.2.1.2.2.1.8]
+      key: net.if.discovery
+      delay: 5m
+      filter:
+        conditions:
+        - macro: '{#IFNAME}'
+          value: '{$IF.DISCOVERY.MATCHES}'
+          formulaid: A
+        - macro: '{#IFNAME}'
+          value: '{$IF.DISCOVERY.NOT_MATCHES}'
+          operator: NOT_MATCHES_REGEX
+          formulaid: B
+      lifetime: 30d
+      enabled_lifetime_type: DISABLE_NEVER
+      item_prototypes:
+      - uuid: 07c787391d5f41fe9e2bcbd3500396d3
+        name: 'Interface {#IFNAME}: descrição'
+        type: SNMP_AGENT
+        snmp_oid: 1.3.6.1.2.1.2.2.1.2.{#SNMPINDEX}
+        key: net.if.descricao["{#SNMPINDEX}"]
+        delay: 1h
+        history: 30d
+        trends: '0'
+        value_type: CHAR
+        tags:
+        - tag: componente
+          value: Interface
+        - tag: item
+          value: Descrição
+      - uuid: 3458f49d4e884b7caf28ff749d47ee76
+        name: 'Interface {#IFNAME}: alias/observação'
+        type: SNMP_AGENT
+        snmp_oid: 1.3.6.1.2.1.31.1.1.1.18.{#SNMPINDEX}
+        key: net.if.alias["{#SNMPINDEX}"]
+        delay: 1h
+        history: 30d
+        trends: '0'
+        value_type: CHAR
+        tags:
+        - tag: componente
+          value: Interface
+        - tag: item
+          value: Alias
+      - uuid: fca69006be0049eab728a2f50a6ac3ff
+        name: 'Interface {#IFNAME}: status administrativo'
+        type: SNMP_AGENT
+        snmp_oid: 1.3.6.1.2.1.2.2.1.7.{#SNMPINDEX}
+        key: net.if.admin.status["{#SNMPINDEX}"]
+        delay: 1m
+        history: 7d
+        trends: 30d
+        valuemap:
+          name: 'IF-MIB: status administrativo'
+        tags:
+        - tag: componente
+          value: Interface
+        - tag: item
+          value: Admin status
+      - uuid: ed7f1add4dfa41588bc7e8730a05d495
+        name: 'Interface {#IFNAME}: status operacional'
+        type: SNMP_AGENT
+        snmp_oid: 1.3.6.1.2.1.2.2.1.8.{#SNMPINDEX}
+        key: net.if.oper.status["{#SNMPINDEX}"]
+        delay: 1m
+        history: 7d
+        trends: 30d
+        valuemap:
+          name: 'IF-MIB: status operacional'
+        tags:
+        - tag: componente
+          value: Interface
+        - tag: item
+          value: Oper status
+      - uuid: 6b81bdc159ca4c2eb7298eb3b29fac49
+        name: 'Interface {#IFNAME}: velocidade'
+        type: SNMP_AGENT
+        snmp_oid: 1.3.6.1.2.1.31.1.1.1.15.{#SNMPINDEX}
+        key: net.if.speed["{#SNMPINDEX}"]
+        delay: 5m
+        history: 7d
+        trends: 30d
+        value_type: FLOAT
+        units: bps
+        preprocessing:
+        - type: MULTIPLIER
+          parameters:
+          - '1000000'
+        tags:
+        - tag: componente
+          value: Interface
+        - tag: item
+          value: Velocidade
+      - uuid: 8e233101d1414e4cadb30fd3b2a0cab4
+        name: 'Interface {#IFNAME}: tráfego recebido'
+        type: SNMP_AGENT
+        snmp_oid: 1.3.6.1.2.1.31.1.1.1.6.{#SNMPINDEX}
+        key: net.if.in["{#SNMPINDEX}"]
+        delay: 1m
+        history: 7d
+        trends: 30d
+        value_type: FLOAT
+        units: bps
+        preprocessing:
+        - type: CHANGE_PER_SECOND
+        - type: MULTIPLIER
+          parameters:
+          - '8'
+        tags:
+        - tag: componente
+          value: Interface
+        - tag: item
+          value: Tráfego RX
+      - uuid: b5b7b455ac354da9b1e74be447b903b7
+        name: 'Interface {#IFNAME}: tráfego transmitido'
+        type: SNMP_AGENT
+        snmp_oid: 1.3.6.1.2.1.31.1.1.1.10.{#SNMPINDEX}
+        key: net.if.out["{#SNMPINDEX}"]
+        delay: 1m
+        history: 7d
+        trends: 30d
+        value_type: FLOAT
+        units: bps
+        preprocessing:
+        - type: CHANGE_PER_SECOND
+        - type: MULTIPLIER
+          parameters:
+          - '8'
+        tags:
+        - tag: componente
+          value: Interface
+        - tag: item
+          value: Tráfego TX
+      - uuid: 54fb589805574b11b393e7f4a175c38e
+        name: 'Interface {#IFNAME}: erros RX'
+        type: SNMP_AGENT
+        snmp_oid: 1.3.6.1.2.1.2.2.1.14.{#SNMPINDEX}
+        key: net.if.in.errors["{#SNMPINDEX}"]
+        delay: 1m
+        history: 7d
+        trends: 30d
+        value_type: FLOAT
+        units: erros/s
+        preprocessing:
+        - type: CHANGE_PER_SECOND
+        tags:
+        - tag: componente
+          value: Interface
+        - tag: item
+          value: Erros RX
+      - uuid: 5250c88c93b242dca77244b37fccdf20
+        name: 'Interface {#IFNAME}: erros TX'
+        type: SNMP_AGENT
+        snmp_oid: 1.3.6.1.2.1.2.2.1.20.{#SNMPINDEX}
+        key: net.if.out.errors["{#SNMPINDEX}"]
+        delay: 1m
+        history: 7d
+        trends: 30d
+        value_type: FLOAT
+        units: erros/s
+        preprocessing:
+        - type: CHANGE_PER_SECOND
+        tags:
+        - tag: componente
+          value: Interface
+        - tag: item
+          value: Erros TX
+      - uuid: 790f6c3aa41c41bdbc471ebf7b861cde
+        name: 'Interface {#IFNAME}: descartes RX'
+        type: SNMP_AGENT
+        snmp_oid: 1.3.6.1.2.1.2.2.1.13.{#SNMPINDEX}
+        key: net.if.in.discards["{#SNMPINDEX}"]
+        delay: 1m
+        history: 7d
+        trends: 30d
+        value_type: FLOAT
+        units: descartes/s
+        preprocessing:
+        - type: CHANGE_PER_SECOND
+        tags:
+        - tag: componente
+          value: Interface
+        - tag: item
+          value: Descartes RX
+      - uuid: 30f553c5847a4037bf3fc16784bf1f58
+        name: 'Interface {#IFNAME}: descartes TX'
+        type: SNMP_AGENT
+        snmp_oid: 1.3.6.1.2.1.2.2.1.19.{#SNMPINDEX}
+        key: net.if.out.discards["{#SNMPINDEX}"]
+        delay: 1m
+        history: 7d
+        trends: 30d
+        value_type: FLOAT
+        units: descartes/s
+        preprocessing:
+        - type: CHANGE_PER_SECOND
+        tags:
+        - tag: componente
+          value: Interface
+        - tag: item
+          value: Descartes TX
+      graph_prototypes:
+      - uuid: 690445ad6c964054830b745856981f38
+        name: 'Interface {#IFNAME}: tráfego'
+        graph_items:
+        - color: 199C0D
+          item:
+            host: Template - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24 Unificado
+            key: net.if.in["{#SNMPINDEX}"]
+        - color: 2774A4
+          item:
+            host: Template - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24 Unificado
+            key: net.if.out["{#SNMPINDEX}"]
+      - uuid: 501abdbb149c48d9a077d77052536cc0
+        name: 'Interface {#IFNAME}: erros e descartes'
+        graph_items:
+        - color: E33734
+          item:
+            host: Template - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24 Unificado
+            key: net.if.in.errors["{#SNMPINDEX}"]
+        - color: F63100
+          item:
+            host: Template - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24 Unificado
+            key: net.if.out.errors["{#SNMPINDEX}"]
+        - color: FFB300
+          item:
+            host: Template - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24 Unificado
+            key: net.if.in.discards["{#SNMPINDEX}"]
+        - color: 6C59DC
+          item:
+            host: Template - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24 Unificado
+            key: net.if.out.discards["{#SNMPINDEX}"]
+      description: Descoberta de interfaces via IF-MIB. O alerta de link down só dispara
+        para portas com tráfego recente nas últimas 24h, usando {$IF.LINKDOWN.MIN.BPS}.
+      trigger_prototypes:
+      - uuid: 781a71c4c2154cf3aa7c427acb6c50f6
+        expression: last(/Template - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24
+          Unificado/net.if.oper.status["{#SNMPINDEX}"])=2 and last(/Template - OLT Intelbras
+          FiberHome AN6001-G16 SNMP Direto V5.24 Unificado/net.if.admin.status["{#SNMPINDEX}"])=1
+          and (max(/Template - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24 Unificado/net.if.in["{#SNMPINDEX}"],24h)>{$IF.LINKDOWN.MIN.BPS}
+          or max(/Template - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24 Unificado/net.if.out["{#SNMPINDEX}"],24h)>{$IF.LINKDOWN.MIN.BPS})
+        name: 'Interface {#IFNAME}: link down em porta SFP/Ethernet com tráfego recente'
+        priority: DISASTER
+        manual_close: 'YES'
+        recovery_mode: RECOVERY_EXPRESSION
+        recovery_expression: last(/Template - OLT Intelbras FiberHome AN6001-G16 SNMP
+          Direto V5.24 Unificado/net.if.oper.status["{#SNMPINDEX}"])=1 or last(/WNET
+          - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24 Unificado/net.if.admin.status["{#SNMPINDEX}"])<>1
+        description: Dispara apenas para interfaces descobertas pelo IF-MIB e com
+          tráfego nas últimas 24h. Interfaces PON são ignoradas pela macro {$IF.DISCOVERY.NOT_MATCHES};
+          quedas de PON são tratadas pelos alertas baseados nas ONUs registradas.
+      - uuid: edc853aa89b3446ca4997667b2b7342f
+        expression: last(/Template - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24
+          Unificado/net.if.speed["{#SNMPINDEX}"])>0 and (last(/Template - OLT Intelbras
+          FiberHome AN6001-G16 SNMP Direto V5.24 Unificado/net.if.in["{#SNMPINDEX}"])/last(/WNET
+          - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24 Unificado/net.if.speed["{#SNMPINDEX}"]))
+          * 100 >{$IF.UTIL.MAX}
+        name: 'Interface {#IFNAME}: alto uso de download/RX'
+        priority: WARNING
+        manual_close: 'YES'
+        recovery_mode: RECOVERY_EXPRESSION
+        recovery_expression: (last(/Template - OLT Intelbras FiberHome AN6001-G16 SNMP
+          Direto V5.24 Unificado/net.if.in["{#SNMPINDEX}"])/last(/Template - OLT Intelbras
+          FiberHome AN6001-G16 SNMP Direto V5.24 Unificado/net.if.speed["{#SNMPINDEX}"]))
+          * 100 <({$IF.UTIL.MAX}-5)
+      - uuid: b726661b60cd43ab9542978cbdeaac53
+        expression: last(/Template - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24
+          Unificado/net.if.speed["{#SNMPINDEX}"])>0 and (last(/Template - OLT Intelbras
+          FiberHome AN6001-G16 SNMP Direto V5.24 Unificado/net.if.out["{#SNMPINDEX}"])/last(/WNET
+          - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24 Unificado/net.if.speed["{#SNMPINDEX}"]))
+          * 100 >{$IF.UTIL.MAX}
+        name: 'Interface {#IFNAME}: alto uso de upload/TX'
+        priority: WARNING
+        manual_close: 'YES'
+        recovery_mode: RECOVERY_EXPRESSION
+        recovery_expression: (last(/Template - OLT Intelbras FiberHome AN6001-G16 SNMP
+          Direto V5.24 Unificado/net.if.out["{#SNMPINDEX}"])/last(/Template - OLT Intelbras
+          FiberHome AN6001-G16 SNMP Direto V5.24 Unificado/net.if.speed["{#SNMPINDEX}"]))
+          * 100 <({$IF.UTIL.MAX}-5)
+    - uuid: b3f2bcb4181348e88b892b427d4d9d68
+      name: Descoberta de ONUs autorizadas e sinal óptico
+      type: SNMP_AGENT
+      snmp_oid: discovery[{#ONU_SLOT},.1.3.6.1.4.1.5875.800.3.10.1.1.2,{#ONU_PON},.1.3.6.1.4.1.5875.800.3.10.1.1.3,{#ONU_ID},.1.3.6.1.4.1.5875.800.3.10.1.1.4,{#ONU_NAME},.1.3.6.1.4.1.5875.800.3.10.1.1.7,{#ONU_SN},.1.3.6.1.4.1.5875.800.3.10.1.1.8,{#ONU_STATUS},.1.3.6.1.4.1.5875.800.3.10.1.1.11]
+      key: fh.onu.discovery
+      delay: 5m
+      filter:
+        conditions:
+        - macro: '{#ONU_STATUS}'
+          value: '{$ONU.DISCOVERY.STATUS.MATCHES}'
+          formulaid: A
+      lifetime: 30d
+      enabled_lifetime_type: DISABLE_NEVER
+      item_prototypes:
+      - uuid: 2c0fb58a1fc94d6fa302b1bafa14ec0f
+        name: 'ONU {#ONU_SLOT}/{#ONU_PON}/{#ONU_ID}: nome'
+        type: SNMP_AGENT
+        snmp_oid: .1.3.6.1.4.1.5875.800.3.10.1.1.7.{#SNMPINDEX}
+        key: onu.nome["{#SNMPINDEX}"]
+        delay: 1h
+        history: 30d
+        trends: '0'
+        value_type: CHAR
+        tags:
+        - tag: componente
+          value: ONU
+        - tag: item
+          value: Nome
+      - uuid: 425f9f73540045bfbd66baccd969e54e
+        name: 'ONU {#ONU_SLOT}/{#ONU_PON}/{#ONU_ID}: serial/LOID'
+        type: SNMP_AGENT
+        snmp_oid: .1.3.6.1.4.1.5875.800.3.10.1.1.8.{#SNMPINDEX}
+        key: onu.serial["{#SNMPINDEX}"]
+        delay: 1h
+        history: 30d
+        trends: '0'
+        value_type: CHAR
+        tags:
+        - tag: componente
+          value: ONU
+        - tag: item
+          value: Serial
+      - uuid: 227420ee525f4ebc99ee6d4dd1b23c82
+        name: 'ONU {#ONU_SLOT}/{#ONU_PON}/{#ONU_ID}: MAC'
+        type: SNMP_AGENT
+        snmp_oid: .1.3.6.1.4.1.5875.800.3.10.1.1.10.{#SNMPINDEX}
+        key: onu.mac["{#SNMPINDEX}"]
+        delay: 1h
+        history: 30d
+        trends: '0'
+        value_type: CHAR
+        tags:
+        - tag: componente
+          value: ONU
+        - tag: item
+          value: MAC
+      - uuid: d6f9569640ba474c9e13e745c5697e51
+        name: 'ONU {#ONU_SLOT}/{#ONU_PON}/{#ONU_ID}: status'
+        type: SNMP_AGENT
+        snmp_oid: .1.3.6.1.4.1.5875.800.3.10.1.1.11.{#SNMPINDEX}
+        key: onu.status["{#SNMPINDEX}"]
+        delay: 5m
+        history: 7d
+        trends: 30d
+        valuemap:
+          name: 'FiberHome: status da ONU'
+        tags:
+        - tag: componente
+          value: ONU
+        - tag: item
+          value: Status
+      - uuid: 7ce0a4e6f8874beb8930337e391e4935
+        name: 'ONU {#ONU_SLOT}/{#ONU_PON}/{#ONU_ID}: sinal RX'
+        type: SNMP_AGENT
+        snmp_oid: .1.3.6.1.4.1.5875.800.3.9.3.3.1.6.{#SNMPINDEX}
+        key: onu.rx.power["{#SNMPINDEX}"]
+        delay: 5m
+        history: 7d
+        trends: 30d
+        value_type: FLOAT
+        units: dBm
+        preprocessing:
+        - type: MULTIPLIER
+          parameters:
+          - '0.01'
+        tags:
+        - tag: componente
+          value: ONU
+        - tag: item
+          value: Sinal RX
+        description: 'Medição em lote do sinal óptico da ONU. Se retornar 0 dBm para
+          ONUs online, habilite na OLT: mib stats enable; depois valide com show mib
+          stats switch.'
+      - uuid: f47f3ed5607c4d81978cfc15e4b426e3
+        name: 'ONU {#ONU_SLOT}/{#ONU_PON}/{#ONU_ID}: sinal TX'
+        type: SNMP_AGENT
+        snmp_oid: .1.3.6.1.4.1.5875.800.3.9.3.3.1.7.{#SNMPINDEX}
+        key: onu.tx.power["{#SNMPINDEX}"]
+        delay: 5m
+        history: 7d
+        trends: 30d
+        value_type: FLOAT
+        units: dBm
+        preprocessing:
+        - type: MULTIPLIER
+          parameters:
+          - '0.01'
+        tags:
+        - tag: componente
+          value: ONU
+        - tag: item
+          value: Sinal TX
+        description: 'Medição em lote do sinal óptico da ONU. Se retornar 0 dBm para
+          ONUs online, habilite na OLT: mib stats enable; depois valide com show mib
+          stats switch.'
+      graph_prototypes:
+      - uuid: 56df0c3ce83c447baecc71f7311b5b49
+        name: 'ONU {#ONU_SLOT}/{#ONU_PON}/{#ONU_ID}: sinal óptico'
+        graph_items:
+        - color: 199C0D
+          item:
+            host: Template - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24 Unificado
+            key: onu.rx.power["{#SNMPINDEX}"]
+        - color: 2774A4
+          item:
+            host: Template - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24 Unificado
+            key: onu.tx.power["{#SNMPINDEX}"]
+      description: '
+
+        V3.2: intervalo reduzido para acelerar a criação dos itens durante os testes.
+        Em produção, pode aumentar para 1h/1d se desejar.'
+      trigger_prototypes:
+      - uuid: 24799cb7ffbe453f9bd7147def8cedb6
+        expression: last(/Template - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24
+          Unificado/onu.status["{#SNMPINDEX}"])=1 and last(/Template - OLT Intelbras FiberHome
+          AN6001-G16 SNMP Direto V5.24 Unificado/onu.rx.power["{#SNMPINDEX}"])<{$ONU.RX.WARN}
+        name: 'ONU {#ONU_SLOT}/{#ONU_PON}/{#ONU_ID}: sinal RX baixo'
+        priority: AVERAGE
+        manual_close: 'YES'
+        recovery_mode: RECOVERY_EXPRESSION
+        recovery_expression: last(/Template - OLT Intelbras FiberHome AN6001-G16 SNMP
+          Direto V5.24 Unificado/onu.rx.power["{#SNMPINDEX}"])>{$ONU.RX.RECOVERY}
+        description: Alerta quando a ONU está online, mas com sinal RX abaixo do limite
+          de atenção.
+        status: DISABLED
+      - uuid: 98c3ed81036348588d60e402be2b7044
+        expression: last(/Template - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24
+          Unificado/onu.status["{#SNMPINDEX}"])=1 and last(/Template - OLT Intelbras FiberHome
+          AN6001-G16 SNMP Direto V5.24 Unificado/onu.rx.power["{#SNMPINDEX}"])<{$ONU.RX.CRIT}
+        name: 'ONU {#ONU_SLOT}/{#ONU_PON}/{#ONU_ID}: sinal RX crítico'
+        priority: HIGH
+        manual_close: 'YES'
+        recovery_mode: RECOVERY_EXPRESSION
+        recovery_expression: last(/Template - OLT Intelbras FiberHome AN6001-G16 SNMP
+          Direto V5.24 Unificado/onu.rx.power["{#SNMPINDEX}"])>{$ONU.RX.WARN}
+        description: Alerta quando a ONU está online, mas com sinal RX em nível crítico.
+        status: DISABLED
+    tags:
+    - tag: class
+      value: network
+    - tag: target
+      value: olt
+    - tag: vendor
+      value: intelbras-fiberhome
+    - tag: model
+      value: AN6001-G16
+    macros:
+    - macro: '{$SNMP_COMMUNITY}'
+      value: public
+      description: Community SNMP usada pelo script externo ponfh para consultar a
+        OLT diretamente. Ajuste no host conforme o ambiente.
+    - macro: '{$OLT.SNMP.IP}'
+      value: 192.0.2.10
+      description: 'IP ou DNS da OLT usado pelo script externo ponfh. Configure no
+        host da OLT, exemplo: 192.0.2.10.'
+    - macro: '{$SNMP_PORT}'
+      value: '161'
+      description: Porta SNMP usada pelo script externo ponfh.
+    - macro: '{$SNMP_TIMEOUT}'
+      value: '2'
+      description: Timeout em segundos usado pelo script externo ponfh nas consultas
+        SNMP.
+    - macro: '{$SNMP_RETRIES}'
+      value: '0'
+      description: Quantidade de tentativas SNMP usada pelo script externo ponfh.
+    - macro: '{$PONFH.CACHE_TTL}'
+      value: '120'
+      description: Tempo de cache local em segundos usado pelo script ponfh. Reduz
+        a quantidade de snmpwalks quando vários itens da mesma OLT são coletados no
+        mesmo ciclo.
+    - macro: '{$TEMP.WARN}'
+      value: '65'
+      description: Temperatura de atenção da OLT em °C.
+    - macro: '{$TEMP.CRIT}'
+      value: '75'
+      description: Temperatura crítica da OLT em °C.
+    - macro: '{$CPU.UTIL.WARN}'
+      value: '80'
+      description: Limite de alerta para uso de CPU em %.
+    - macro: '{$MEM.UTIL.WARN}'
+      value: '85'
+      description: Limite de alerta para uso de memória em %.
+    - macro: '{$IF.UTIL.MAX}'
+      value: '90'
+      description: Limite de utilização de interface em %.
+    - macro: '{$IF.LINKDOWN.MIN.BPS}'
+      value: '1000'
+      description: Tráfego mínimo nas últimas 24h para considerar porta SFP/Ethernet
+        em uso antes de alertar link down. Interfaces PON são ignoradas pelo IF-MIB
+        por padrão.
+    - macro: '{$IF.DISCOVERY.MATCHES}'
+      value: .*
+      description: Regex de interfaces a descobrir.
+    - macro: '{$IF.DISCOVERY.NOT_MATCHES}'
+      value: (^lo$|^LoopBack|^NULL|^InLoopBack|^PON)
+      description: Regex de interfaces a ignorar no IF-MIB. Por padrão ignora PON
+        para evitar alerta de interface PON down; PON é monitorada pelos contadores
+        de ONUs via ponfh.
+    - macro: '{$ONU.QUEDA.PERCENT}'
+      value: '50'
+      description: Percentual de queda de ONUs online para alerta massivo.
+    - macro: '{$ONU.QUEDA.MIN}'
+      value: '10'
+      description: Quantidade mínima de ONUs que devem cair para alerta massivo.
+    - macro: '{$ONU.LOS.WARN}'
+      value: '1'
+      description: Quantidade mínima de ONUs em LOS para alerta parcial de fibra.
+    - macro: '{$ONU.ENERGIA.REGIAO.MIN}'
+      value: '5'
+      description: Quantidade mínima de ONUs sem energia na PON para alerta de região
+        sem energia.
+    - macro: '{$ONU.RX.WARN}'
+      value: '-27'
+      description: Limite de atenção para sinal RX da ONU em dBm.
+    - macro: '{$ONU.RX.CRIT}'
+      value: '-30'
+      description: Limite crítico para sinal RX da ONU em dBm.
+    - macro: '{$ONU.RX.RECOVERY}'
+      value: '-25'
+      description: Valor de recuperação do sinal RX da ONU em dBm.
+    - macro: '{$ONU.DISCOVERY.STATUS.MATCHES}'
+      value: '1'
+      description: Status de ONUs a descobrir individualmente. Padrão 1 = somente
+        ONUs online, evitando OIDs inexistentes de sinal/MAC/serial em ONUs sem dados/offline.
+        Para descobrir todas, use (0|1|2|3|4).
+    - macro: '{$ONU.QUEDA30.PERCENT}'
+      value: '30'
+      description: Percentual de clientes offline/indisponíveis para alerta de queda
+        parcial de 30%.
+    - macro: '{$ONU.QUEDA50.PERCENT}'
+      value: '50'
+      description: Percentual de clientes offline/indisponíveis para alerta de queda
+        parcial de 50%.
+    - macro: '{$ONU.PON.MIN.CLIENTES}'
+      value: '1'
+      description: Quantidade mínima de ONUs autorizadas para validar alertas por
+        PON.
+    dashboards:
+    - uuid: e1228a243a584b57afd12a94cbc5fc9f
+      name: Visão geral - OLT AN6001-G16 V5.23
+      pages:
+      - name: Resumo
+        widgets:
+        - type: graph
+          name: Temperatura da OLT
+          x: '0'
+          y: '0'
+          width: '24'
+          height: '5'
+          fields:
+          - type: GRAPH
+            name: graphid.0
+            value:
+              host: Template - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24 Unificado
+              name: 'Chassi: temperatura da OLT'
+          - type: STRING
+            name: reference
+            value: AAAAA
+        - type: graphprototype
+          name: CPU e memória da gerência
+          x: '24'
+          y: '0'
+          width: '24'
+          height: '5'
+          fields:
+          - type: INTEGER
+            name: columns
+            value: '1'
+          - type: GRAPH_PROTOTYPE
+            name: graphid.0
+            value:
+              host: Template - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24 Unificado
+              name: 'Gerência {#MGRCARDTYPE}: CPU e memória'
+          - type: STRING
+            name: reference
+            value: AAAAC
+        - type: graphprototype
+          name: Tráfego das interfaces
+          x: '0'
+          y: '5'
+          width: '36'
+          height: '6'
+          fields:
+          - type: INTEGER
+            name: columns
+            value: '2'
+          - type: GRAPH_PROTOTYPE
+            name: graphid.0
+            value:
+              host: Template - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24 Unificado
+              name: 'Interface {#IFNAME}: tráfego'
+          - type: STRING
+            name: reference
+            value: AAAAD
+        - type: graphprototype
+          name: ONUs por status por PON
+          x: '36'
+          y: '5'
+          width: '36'
+          height: '6'
+          fields:
+          - type: INTEGER
+            name: columns
+            value: '2'
+          - type: GRAPH_PROTOTYPE
+            name: graphid.0
+            value:
+              host: Template - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24 Unificado
+              name: 'PON {#PON}: ONUs por status'
+          - type: STRING
+            name: reference
+            value: AAAAE
+        - type: graphprototype
+          name: Sinal óptico das ONUs
+          x: '0'
+          y: '11'
+          width: '72'
+          height: '6'
+          fields:
+          - type: INTEGER
+            name: columns
+            value: '3'
+          - type: GRAPH_PROTOTYPE
+            name: graphid.0
+            value:
+              host: Template - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24 Unificado
+              name: 'ONU {#ONU_SLOT}/{#ONU_PON}/{#ONU_ID}: sinal óptico'
+          - type: STRING
+            name: reference
+            value: AAAAF
+        - type: graphprototype
+          name: CPU e memória por card
+          x: '36'
+          y: '17'
+          width: '36'
+          height: '5'
+          fields:
+          - type: INTEGER
+            name: columns
+            value: '2'
+          - type: GRAPH_PROTOTYPE
+            name: graphid.0
+            value:
+              host: Template - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24 Unificado
+              name: 'Card {#CARD}: CPU e memória'
+          - type: STRING
+            name: reference
+            value: AAAAG
+        - type: graphprototype
+          name: Erros e descartes das interfaces
+          x: '0'
+          y: '22'
+          width: '72'
+          height: '5'
+          fields:
+          - type: INTEGER
+            name: columns
+            value: '2'
+          - type: GRAPH_PROTOTYPE
+            name: graphid.0
+            value:
+              host: Template - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24 Unificado
+              name: 'Interface {#IFNAME}: erros e descartes'
+          - type: STRING
+            name: reference
+            value: AAAAH
+        - type: graphprototype
+          name: Queda de clientes por PON (%)
+          x: '0'
+          y: '17'
+          width: '36'
+          height: '5'
+          fields:
+          - type: INTEGER
+            name: columns
+            value: '2'
+          - type: GRAPH_PROTOTYPE
+            name: graphid.0
+            value:
+              host: Template - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24 Unificado
+              name: 'PON {#PON}: percentual de clientes'
+          - type: STRING
+            name: reference
+            value: AAAAI
+    valuemaps:
+    - uuid: 2533873e67d64abfbcd55813491a8598
+      name: 'FiberHome: status das ventoinhas'
+      mappings:
+      - value: '1'
+        newvalue: Normal
+      - value: '2'
+        newvalue: Parada
+      - value: '3'
+        newvalue: Anormal
+      - value: '4'
+        newvalue: Sem verificação
+    - uuid: 4d21bc9a3e2d4019b27c84501822abfe
+      name: 'FiberHome: tipo do card'
+      mappings:
+      - value: '415'
+        newvalue: HU1A
+      - value: '527'
+        newvalue: GC8B
+      - value: '550'
+        newvalue: GCOB
+    - uuid: c7ae8c3751584254942a9499e6bc645c
+      name: 'FiberHome: tipo do card de gerência'
+      mappings:
+      - value: '355'
+        newvalue: HSWA
+      - value: '374'
+        newvalue: HSUB
+      - value: '365'
+        newvalue: WSWD
+    - uuid: 0c33e3a0b86744ab9a4c2bf98c6ef5af
+      name: 'FiberHome: status operacional'
+      mappings:
+      - value: '0'
+        newvalue: Indisponível
+      - value: '1'
+        newvalue: Normal
+      - value: '2'
+        newvalue: Interrompido
+      - value: '3'
+        newvalue: Anormal
+    - uuid: e74a05b2e07f408e9f6030a1e886c07b
+      name: 'FiberHome: status da PON'
+      mappings:
+      - value: '0'
+        newvalue: Down/Vazia
+      - value: '1'
+        newvalue: Up/Ocupada
+    - uuid: 440f91eb527a4b138547e5793cba56ca
+      name: 'FiberHome: status da ONU'
+      mappings:
+      - value: '0'
+        newvalue: LOS / falha de fibra
+      - value: '1'
+        newvalue: Online
+      - value: '2'
+        newvalue: Offline
+      - value: '3'
+        newvalue: Sem dados
+      - value: '4'
+        newvalue: Sem energia
+    - uuid: 24f824240fb54352828a511a6dc3514b
+      name: 'IF-MIB: status administrativo'
+      mappings:
+      - value: '1'
+        newvalue: Up
+      - value: '2'
+        newvalue: Down
+      - value: '3'
+        newvalue: Teste
+    - uuid: 8538effce76a47eaa9a337d2a4a8962d
+      name: 'IF-MIB: status operacional'
+      mappings:
+      - value: '1'
+        newvalue: Up
+      - value: '2'
+        newvalue: Down
+      - value: '3'
+        newvalue: Teste
+      - value: '4'
+        newvalue: Desconhecido
+      - value: '5'
+        newvalue: Dormant
+      - value: '6'
+        newvalue: Não presente
+      - value: '7'
+        newvalue: Camada inferior down
+  graphs:
+  - uuid: f7d67d61e1434c5f8774037707e045bd
+    name: 'Chassi: temperatura da OLT'
+    graph_items:
+    - color: F63100
+      item:
+        host: Template - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24 Unificado
+        key: chassi.temperatura
+  - uuid: 8ff6a999ff354d8a81869589421d2da2
+    name: 'Chassi: tempo ligado'
+    graph_items:
+    - color: 2774A4
+      item:
+        host: Template - OLT Intelbras FiberHome AN6001-G16 SNMP Direto V5.24 Unificado
+        key: system.uptime

@@ -1,0 +1,14 @@
+# Arquivos temporários
+*.tmp
+*.bak
+*.log
+*.old
+
+# Pacotes locais
+*.zip
+
+# Dados sensíveis locais
+.env
+secrets.*
+communities.*
+ips_reais.*
