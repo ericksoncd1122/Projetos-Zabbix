@@ -535,30 +535,6 @@ Remova o debug depois do teste.
 
 ---
 
-## Recomendações para publicar no GitHub
-
-Antes de publicar, confira que não existem dados reais nos arquivos:
-
-```bash
-grep -RInE "COMMUNITY_REAL|IP_REAL|NOME_REAL_DA_OLT|NOME_DO_SERVIDOR" .
-```
-
-Também é recomendado procurar padrões internos da sua rede antes do commit:
-
-```bash
-grep -RInE "10\.|172\.|192\.168\.|100\.64\.|publicidade_de_exemplo" .
-```
-
-Use IPs de documentação quando precisar dar exemplos:
-
-```text
-192.0.2.0/24
-198.51.100.0/24
-203.0.113.0/24
-```
-
----
-
 ## Observações
 
 - O script consulta diretamente a OLT via SNMP; não depende de banco externo.
