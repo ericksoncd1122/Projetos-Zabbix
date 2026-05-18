@@ -1,3 +1,5 @@
+<img width="439" height="115" alt="zabbix" src="https://github.com/user-attachments/assets/89148e3e-e19a-4afb-a90b-d28e316cd932" />
+<img width="394" height="128" alt="intelbras" src="https://github.com/user-attachments/assets/08506bb1-3c42-425d-a311-8aaf3080321d" />
 # Template Zabbix — OLT Intelbras / FiberHome AN6001-G16 via SNMP
 
 Template para monitoramento de OLTs **Intelbras FiberHome AN6001-G16 / família AN6000** no **Zabbix 7.x**, usando SNMP e um script externo para consolidar informações de PON/ONUs diretamente da OLT.
