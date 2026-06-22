@@ -1,0 +1,2846 @@
+zabbix_export:
+  version: '7.0'
+  template_groups:
+  - uuid: 6968c044b69349638baa02586a062777
+    name: Templates/Dispositivos de rede
+  templates:
+  - uuid: 5de4ce3ec9b3432e8c5adc2fb6a63b6c
+    template: 0Wnet - MikroTik CCR2116-12G-4S por SNMP
+    name: 0Wnet - MikroTik CCR2116-12G-4S+ por SNMP
+    description: 'Template para monitorar o roteador MikroTik CCR2116-12G-4S+.
+
+
+      Roteador Cloud Core Router com portas Ethernet e SFP+, RouterOS v7 e sensores expostos por SNMP quando disponiveis.
+
+      Descobertas dinamicas para interfaces, CPU, memoria, storage e sensores MikroTik
+
+
+      MIBs usadas:
+
+      HOST-RESOURCES-MIB
+
+      SNMPv2-MIB
+
+      MIKROTIK-MIB
+
+      IF-MIB
+
+
+      Gerado pela ferramenta oficial de templates do Zabbix "Templator"
+
+      '
+    groups:
+    - name: Templates/Dispositivos de rede
+    items:
+    - uuid: b1923e2d3cf84d86a18fff63a567c48b
+      name: Ping ICMP
+      type: SIMPLE
+      key: icmpping
+      valuemap:
+        name: Estado do servico
+      tags:
+      - tag: componente
+        value: saude
+      - tag: componente
+        value: rede
+      triggers:
+      - uuid: 41a084db22784ed3af256b329a7acf43
+        expression: max(/0Wnet - MikroTik CCR2116-12G-4S por SNMP/icmpping,#3)=0
+        name: 'MikroTik: Indisponivel por ping ICMP'
+        priority: HIGH
+        description: As ultimas tres tentativas retornaram timeout. Verifique a conectividade do dispositivo.
+        tags:
+        - tag: escopo
+          value: disponibilidade
+    - uuid: d63eff7f5466443aa23b695b68e5188b
+      name: Perda ICMP
+      type: SIMPLE
+      key: icmppingloss
+      value_type: FLOAT
+      units: '%'
+      tags:
+      - tag: componente
+        value: saude
+      - tag: componente
+        value: rede
+      triggers:
+      - uuid: 4f53eb2450be4e1a8ff6195c84a0b471
+        expression: min(/0Wnet - MikroTik CCR2116-12G-4S por SNMP/icmppingloss,5m)>{$ICMP_LOSS_WARN} and min(/0Wnet - MikroTik
+          CCR2116-12G-4S por SNMP/icmppingloss,5m)<100
+        name: 'MikroTik: Alta perda de ping ICMP'
+        opdata: 'Perda: {ITEM.LASTVALUE1}'
+        priority: WARNING
+        dependencies:
+        - name: 'MikroTik: Indisponivel por ping ICMP'
+          expression: max(/0Wnet - MikroTik CCR2116-12G-4S por SNMP/icmpping,#3)=0
+        tags:
+        - tag: escopo
+          value: disponibilidade
+        - tag: escopo
+          value: desempenho
+    - uuid: 62e9e62ee7f846a7b521bad50975c8d0
+      name: Tempo de resposta ICMP
+      type: SIMPLE
+      key: icmppingsec
+      value_type: FLOAT
+      units: s
+      tags:
+      - tag: componente
+        value: saude
+      - tag: componente
+        value: rede
+      triggers:
+      - uuid: 5299b2edc4444b4caacbb81b9bc85042
+        expression: avg(/0Wnet - MikroTik CCR2116-12G-4S por SNMP/icmppingsec,5m)>{$ICMP_RESPONSE_TIME_WARN}
+        name: 'MikroTik: Alto tempo de resposta do ping ICMP'
+        opdata: 'Valor: {ITEM.LASTVALUE1}'
+        priority: WARNING
+        description: O tempo medio de resposta ICMP esta muito alto.
+        dependencies:
+        - name: 'MikroTik: Alta perda de ping ICMP'
+          expression: min(/0Wnet - MikroTik CCR2116-12G-4S por SNMP/icmppingloss,5m)>{$ICMP_LOSS_WARN} and min(/0Wnet - MikroTik
+            CCR2116-12G-4S por SNMP/icmppingloss,5m)<100
+        - name: 'MikroTik: Indisponivel por ping ICMP'
+          expression: max(/0Wnet - MikroTik CCR2116-12G-4S por SNMP/icmpping,#3)=0
+        tags:
+        - tag: escopo
+          value: disponibilidade
+        - tag: escopo
+          value: desempenho
+    - uuid: 9b437b93a4744594bcdd2180cb2ca834
+      name: 'MikroTik: Coleta SNMP de interfaces de rede'
+      type: SNMP_AGENT
+      snmp_oid: walk[1.3.6.1.2.1.2.2.1.8,1.3.6.1.2.1.2.2.1.7,1.3.6.1.2.1.31.1.1.1.18,1.3.6.1.2.1.31.1.1.1.1,1.3.6.1.2.1.2.2.1.2,1.3.6.1.2.1.2.2.1.3,1.3.6.1.2.1.31.1.1.1.6,1.3.6.1.2.1.31.1.1.1.10,1.3.6.1.2.1.2.2.1.14,1.3.6.1.2.1.2.2.1.20,1.3.6.1.2.1.2.2.1.19,1.3.6.1.2.1.2.2.1.13,1.3.6.1.2.1.31.1.1.1.15]
+      key: net.if.walk
+      history: '0'
+      value_type: TEXT
+      trends: '0'
+      description: Descoberta de interfaces pela IF-MIB.
+      tags:
+      - tag: componente
+        value: bruto
+    - uuid: bcca2a5ca6a343fe9283e2e8f7f79a28
+      name: Coleta SNMP de interfaces sem fio
+      type: SNMP_AGENT
+      snmp_oid: walk[1.3.6.1.4.1.14988.1.1.14.1.1.2,1.3.6.1.2.1.31.1.1.1.18,1.3.6.1.2.1.2.2.1.3,1.3.6.1.2.1.2.2.1.7,1.3.6.1.4.1.14988.1.1.16.1.1.2,1.3.6.1.4.1.14988.1.1.16.1.1.4,1.3.6.1.4.1.14988.1.1.16.1.1.3,1.3.6.1.4.1.14988.1.1.16.1.1.7,1.3.6.1.4.1.14988.1.1.1.3.1.4,1.3.6.1.4.1.14988.1.1.1.3.1.8,1.3.6.1.4.1.14988.1.1.1.3.1.9,1.3.6.1.4.1.14988.1.1.1.3.1.6,1.3.6.1.4.1.14988.1.1.1.3.1.11,1.3.6.1.4.1.14988.1.1.1.7.1.5,1.3.6.1.4.1.14988.1.1.1.7.1.4,1.3.6.1.4.1.14988.1.1.1.7.1.2,1.3.6.1.4.1.14988.1.1.1.7.1.3]
+      key: net.if.wireless.walk
+      history: '0'
+      value_type: TEXT
+      trends: '0'
+      tags:
+      - tag: componente
+        value: bruto
+    - uuid: f5202ce7b16b44e5b14ef891f4c40b55
+      name: Traps SNMP (fallback)
+      type: SNMP_TRAP
+      key: snmptrap.fallback
+      delay: '0'
+      value_type: LOG
+      trends: '0'
+      description: O item coleta todas as traps SNMP que nao correspondem a outros itens snmptrap.
+      logtimefmt: hh:mm:sszyyyy/MM/dd
+      tags:
+      - tag: componente
+        value: rede
+    - uuid: 7a169e96038442d480d0233b5250e662
+      name: Detalhes de contato do sistema
+      type: SNMP_AGENT
+      snmp_oid: 1.3.6.1.2.1.1.4.0
+      key: system.contact[sysContact.0]
+      delay: 15m
+      value_type: CHAR
+      trends: '0'
+      description: 'MIB: SNMPv2-MIB
+
+        Identificacao textual da pessoa de contato deste no gerenciado, junto com informacoes de contato. Se nenhuma informacao
+        de contato for conhecida, o valor sera uma string vazia.
+
+        '
+      inventory_link: CONTACT
+      preprocessing:
+      - type: DISCARD_UNCHANGED_HEARTBEAT
+        parameters:
+        - 12h
+      tags:
+      - tag: componente
+        value: sistema
+    - uuid: b30af57c523f4754aefe397676b7c123
+      name: Coleta SNMP de CPUs do sistema
+      type: SNMP_AGENT
+      snmp_oid: walk[1.3.6.1.2.1.25.3.3.1.1,1.3.6.1.2.1.25.3.3.1.2]
+      key: system.cpu.walk
+      history: '0'
+      value_type: TEXT
+      trends: '0'
+      description: 'MIB: HOST-RESOURCES-MIB
+
+        Descoberta de CPUs do sistema.
+
+        '
+      tags:
+      - tag: componente
+        value: bruto
+    - uuid: ae749b9c20c849608f75cfb0a57945dc
+      name: Descricao do sistema
+      type: SNMP_AGENT
+      snmp_oid: 1.3.6.1.2.1.1.1.0
+      key: system.descr[sysDescr.0]
+      delay: 15m
+      value_type: CHAR
+      trends: '0'
+      description: 'MIB: SNMPv2-MIB
+
+        Descricao textual da entidade. Este valor deve
+
+        incluir o nome completo e a identificacao de versao do tipo de hardware, sistema operacional e
+
+        software de rede.
+
+        '
+      preprocessing:
+      - type: DISCARD_UNCHANGED_HEARTBEAT
+        parameters:
+        - 12h
+      tags:
+      - tag: componente
+        value: sistema
+    - uuid: b1af1034a37e41f5900a3ad82d614c1b
+      name: Versao do firmware
+      type: SNMP_AGENT
+      snmp_oid: 1.3.6.1.4.1.14988.1.1.7.4.0
+      key: system.hw.firmware
+      delay: 1h
+      value_type: CHAR
+      trends: '0'
+      description: 'MIB: MIKROTIK-MIB
+
+        Versao atual do firmware.
+
+        '
+      preprocessing:
+      - type: DISCARD_UNCHANGED_HEARTBEAT
+        parameters:
+        - 1d
+      tags:
+      - tag: componente
+        value: sistema
+      triggers:
+      - uuid: ef09f0eee759469293e74ba429493fe9
+        expression: last(/0Wnet - MikroTik CCR2116-12G-4S por SNMP/system.hw.firmware,#1)<>last(/0Wnet - MikroTik CCR2116-12G-4S
+          por SNMP/system.hw.firmware,#2) and length(last(/0Wnet - MikroTik CCR2116-12G-4S por SNMP/system.hw.firmware))>0
+        name: 'MikroTik: Firmware foi alterado'
+        opdata: 'Valor atual: {ITEM.LASTVALUE1}'
+        priority: INFO
+        description: A versao do firmware foi alterada. Reconheca para fechar o problema manualmente.
+        manual_close: 'YES'
+        tags:
+        - tag: escopo
+          value: aviso
+    - uuid: 357202f1b12c4239a7e25eb162f2868e
+      name: Nome do modelo de hardware
+      type: SNMP_AGENT
+      snmp_oid: 1.3.6.1.2.1.1.1.0
+      key: system.hw.model
+      delay: 1h
+      value_type: CHAR
+      trends: '0'
+      inventory_link: MODEL
+      preprocessing:
+      - type: DISCARD_UNCHANGED_HEARTBEAT
+        parameters:
+        - 1d
+      tags:
+      - tag: componente
+        value: sistema
+    - uuid: 4ed5ce80b4494959a67e8ba6d1ff4384
+      name: Numero de serie do hardware
+      type: SNMP_AGENT
+      snmp_oid: 1.3.6.1.4.1.14988.1.1.7.3.0
+      key: system.hw.serialnumber
+      delay: 1h
+      value_type: CHAR
+      trends: '0'
+      description: 'MIB: MIKROTIK-MIB
+
+        Numero de serie da RouterBOARD.
+
+        '
+      inventory_link: SERIALNO_A
+      preprocessing:
+      - type: DISCARD_UNCHANGED_HEARTBEAT
+        parameters:
+        - 1d
+      tags:
+      - tag: componente
+        value: sistema
+      triggers:
+      - uuid: 0d76387dfce947618a271c4f562b31c8
+        expression: last(/0Wnet - MikroTik CCR2116-12G-4S por SNMP/system.hw.serialnumber,#1)<>last(/0Wnet - MikroTik CCR2116-12G-4S
+          por SNMP/system.hw.serialnumber,#2) and length(last(/0Wnet - MikroTik CCR2116-12G-4S por SNMP/system.hw.serialnumber))>0
+        name: 'MikroTik: Dispositivo foi substituido'
+        event_name: 'MikroTik: Dispositivo foi substituido (novo numero de serie recebido)'
+        priority: INFO
+        description: O numero de serie do dispositivo foi alterado. Reconheca para fechar o problema manualmente.
+        manual_close: 'YES'
+        tags:
+        - tag: escopo
+          value: aviso
+    - uuid: 4ac01144e79d43d98d6d56ae399f68df
+      name: Tempo ativo (hardware)
+      type: SNMP_AGENT
+      snmp_oid: 1.3.6.1.2.1.25.1.1.0
+      key: system.hw.uptime[hrSystemUptime.0]
+      delay: 30s
+      trends: '0'
+      units: uptime
+      description: 'MIB: HOST-RESOURCES-MIB
+
+        Tempo desde a ultima inicializacao deste host. Note that this is different from sysUpTime in the SNMPv2-MIB [RFC1907]
+        because sysUpTime is the uptime of the network management portion of the system.
+
+        '
+      preprocessing:
+      - type: CHECK_NOT_SUPPORTED
+        parameters:
+        - '-1'
+        error_handler: CUSTOM_VALUE
+        error_handler_params: '0'
+      - type: MULTIPLIER
+        parameters:
+        - '0.01'
+      tags:
+      - tag: componente
+        value: sistema
+    - uuid: 08b6f7973d884a3ca5aece373c894034
+      name: Localizacao do sistema
+      type: SNMP_AGENT
+      snmp_oid: 1.3.6.1.2.1.1.6.0
+      key: system.location[sysLocation.0]
+      delay: 15m
+      value_type: CHAR
+      trends: '0'
+      description: 'MIB: SNMPv2-MIB
+
+        Localizacao fisica do no (por exemplo, `sala de equipamentos`, `3o andar`). Se nao for informado, o valor sera uma
+        string vazia.
+
+        '
+      inventory_link: LOCATION
+      preprocessing:
+      - type: DISCARD_UNCHANGED_HEARTBEAT
+        parameters:
+        - 12h
+      tags:
+      - tag: componente
+        value: sistema
+    - uuid: 875a995a61754b0795a63c63fa6e6c7e
+      name: Nome do sistema
+      type: SNMP_AGENT
+      snmp_oid: 1.3.6.1.2.1.1.5.0
+      key: system.name
+      delay: 15m
+      value_type: CHAR
+      trends: '0'
+      description: 'MIB: SNMPv2-MIB
+
+        Nome atribuido administrativamente a este no gerenciado. Por convencao, e o FQDN do no. Se o nome for desconhecido,
+        o valor sera uma string vazia.
+
+        '
+      inventory_link: NAME
+      preprocessing:
+      - type: DISCARD_UNCHANGED_HEARTBEAT
+        parameters:
+        - 12h
+      tags:
+      - tag: componente
+        value: sistema
+      triggers:
+      - uuid: 57065f47d17c4cf0948aaa221082be59
+        expression: last(/0Wnet - MikroTik CCR2116-12G-4S por SNMP/system.name,#1)<>last(/0Wnet - MikroTik CCR2116-12G-4S
+          por SNMP/system.name,#2) and length(last(/0Wnet - MikroTik CCR2116-12G-4S por SNMP/system.name))>0
+        name: 'MikroTik: Nome do sistema foi alterado'
+        event_name: 'MikroTik: Nome do sistema foi alterado (novo nome: {ITEM.VALUE})'
+        priority: INFO
+        description: O nome do sistema foi alterado. Reconheca para fechar o problema manualmente.
+        manual_close: 'YES'
+        tags:
+        - tag: escopo
+          value: aviso
+        - tag: escopo
+          value: seguranca
+    - uuid: 552235345eac4457955edbf6e3fe5849
+      name: Tempo ativo (rede)
+      type: SNMP_AGENT
+      snmp_oid: 1.3.6.1.2.1.1.3.0
+      key: system.net.uptime[sysUpTime.0]
+      delay: 30s
+      trends: '0'
+      units: uptime
+      description: 'MIB: SNMPv2-MIB
+
+        Tempo (em centesimos de segundo) desde que a parte de gerenciamento de rede do sistema foi reinicializada pela ultima
+        vez.
+
+        '
+      preprocessing:
+      - type: MULTIPLIER
+        parameters:
+        - '0.01'
+      tags:
+      - tag: componente
+        value: sistema
+    - uuid: 8646fd01485046fb98f1a045a2f528f0
+      name: ID de objeto do sistema
+      type: SNMP_AGENT
+      snmp_oid: 1.3.6.1.2.1.1.2.0
+      key: system.objectid[sysObjectID.0]
+      delay: 15m
+      value_type: CHAR
+      trends: '0'
+      description: 'MIB: SNMPv2-MIB
+
+        Identificacao autoritativa do fornecedor para o subsistema de gerenciamento de rede contido na entidade. Este valor
+        e alocado dentro da subarvore SMI enterprises (1.3.6.1.4.1) e fornece um meio simples e inequivoco de determinar que
+        tipo de equipamento esta sendo gerenciado. Por exemplo, se o fornecedor `Flintstones, Inc.` recebesse a subarvore
+        1.3.6.1.4.1.4242, poderia atribuir o identificador 1.3.6.1.4.1.4242.1.1 ao seu `Fred Router`.
+
+        '
+      preprocessing:
+      - type: DISCARD_UNCHANGED_HEARTBEAT
+        parameters:
+        - 12h
+      tags:
+      - tag: componente
+        value: sistema
+    - uuid: 14de241c154445c5810f2a13cc058e37
+      name: Sistema operacional
+      type: SNMP_AGENT
+      snmp_oid: 1.3.6.1.4.1.14988.1.1.4.4.0
+      key: system.sw.os[mtxrLicVersion.0]
+      delay: 1h
+      value_type: CHAR
+      trends: '0'
+      description: 'MIB: MIKROTIK-MIB
+
+        Versao do software.
+
+        '
+      inventory_link: OS
+      preprocessing:
+      - type: DISCARD_UNCHANGED_HEARTBEAT
+        parameters:
+        - 1d
+      tags:
+      - tag: componente
+        value: os
+      triggers:
+      - uuid: f594cdf3a1814544942cbbb2d493d880
+        expression: last(/0Wnet - MikroTik CCR2116-12G-4S por SNMP/system.sw.os[mtxrLicVersion.0],#1)<>last(/0Wnet - MikroTik
+          CCR2116-12G-4S por SNMP/system.sw.os[mtxrLicVersion.0],#2) and length(last(/0Wnet - MikroTik CCR2116-12G-4S por
+          SNMP/system.sw.os[mtxrLicVersion.0]))>0
+        name: 'MikroTik: Descricao do sistema operacional foi alterada'
+        priority: INFO
+        description: 'A descricao do sistema operacional foi alterada. Possiveis motivos: o sistema foi atualizado ou substituido.
+          Reconheca para fechar o problema manualmente.'
+        manual_close: 'YES'
+        dependencies:
+        - name: 'MikroTik: Nome do sistema foi alterado'
+          expression: last(/0Wnet - MikroTik CCR2116-12G-4S por SNMP/system.name,#1)<>last(/0Wnet - MikroTik CCR2116-12G-4S
+            por SNMP/system.name,#2) and length(last(/0Wnet - MikroTik CCR2116-12G-4S por SNMP/system.name))>0
+        tags:
+        - tag: escopo
+          value: aviso
+    - uuid: cd2b7df4326e4ba180ed64999b7551f6
+      name: Coleta SNMP de sistemas de arquivos montados
+      type: SNMP_AGENT
+      snmp_oid: walk[1.3.6.1.2.1.25.2.3.1.3,1.3.6.1.2.1.25.2.3.1.4,1.3.6.1.2.1.25.2.3.1.2,1.3.6.1.2.1.25.2.3.1.6,1.3.6.1.2.1.25.2.3.1.5]
+      key: vfs.fs.walk
+      history: '0'
+      value_type: TEXT
+      trends: '0'
+      description: 'MIB: HOST-RESOURCES-MIB
+
+        Discovering mounted filesystems.
+
+        '
+      tags:
+      - tag: componente
+        value: bruto
+    - uuid: 4db09b4160384bffb15309cc07c22dca
+      name: Memoria total
+      type: SNMP_AGENT
+      snmp_oid: 1.3.6.1.2.1.25.2.3.1.5.65536
+      key: vm.memory.total[hrStorageSize.Memory]
+      units: B
+      description: 'MIB: HOST-RESOURCES-MIB
+
+        Tamanho do armazenamento representado por esta entrada, em unidades de hrStorageAllocationUnits. Este objeto e gravavel
+        para permitir a configuracao remota do tamanho da area de armazenamento nos casos em que essa operacao faz sentido
+        e e possivel no sistema subjacente. Por exemplo, a quantidade de memoria principal alocada para um buffer pool pode
+        ser modificada, ou a quantidade de espaco em disco alocada para memoria virtual pode ser modificada.
+
+        '
+      preprocessing:
+      - type: MULTIPLIER
+        parameters:
+        - '1024'
+      tags:
+      - tag: componente
+        value: memoria
+    - uuid: bbd033468187462685c8dbafffe6d1e3
+      name: Memoria usada
+      type: SNMP_AGENT
+      snmp_oid: 1.3.6.1.2.1.25.2.3.1.6.65536
+      key: vm.memory.used[hrStorageUsed.Memory]
+      units: B
+      description: 'MIB: HOST-RESOURCES-MIB
+
+        Quantidade do armazenamento representado por esta entrada que esta alocada, em unidades de hrStorageAllocationUnits.
+
+        '
+      preprocessing:
+      - type: MULTIPLIER
+        parameters:
+        - '1024'
+      tags:
+      - tag: componente
+        value: memoria
+    - uuid: ab2d519b1adb413ca196995bfc89060d
+      name: Utilizacao de memoria
+      type: CALCULATED
+      key: vm.memory.util[memoryUsedPercentage.Memory]
+      value_type: FLOAT
+      units: '%'
+      params: last(//vm.memory.used[hrStorageUsed.Memory])/last(//vm.memory.total[hrStorageSize.Memory])*100
+      description: Utilizacao de memoria em %.
+      tags:
+      - tag: componente
+        value: memoria
+      triggers:
+      - uuid: 042c6639c76e4e59856c94fffec88248
+        expression: min(/0Wnet - MikroTik CCR2116-12G-4S por SNMP/vm.memory.util[memoryUsedPercentage.Memory],5m)>{$MEMORY.UTIL.MAX}
+        name: 'MikroTik: Alta utilizacao de memoria'
+        event_name: 'MikroTik: Alta utilizacao de memoria (>{$MEMORY.UTIL.MAX}% por 5m)'
+        priority: AVERAGE
+        description: O sistema esta ficando sem memoria livre.
+        tags:
+        - tag: escopo
+          value: capacidade
+        - tag: escopo
+          value: desempenho
+    - uuid: 4054eb156a3e4020ab57bd377193617b
+      name: Disponibilidade do agente SNMP
+      type: INTERNAL
+      key: zabbix[host,snmp,available]
+      description: 'Disponibilidade das verificacoes SNMP no host. O valor deste item corresponde aos icones de disponibilidade
+        na lista de hosts.
+
+        Valores possiveis:
+
+        0 - indisponivel
+
+        1 - disponivel
+
+        2 - desconhecido
+
+        '
+      valuemap:
+        name: zabbix.host.disponivel
+      tags:
+      - tag: componente
+        value: saude
+      - tag: componente
+        value: rede
+      triggers:
+      - uuid: db157942e91946df90a335b580a437d0
+        expression: max(/0Wnet - MikroTik CCR2116-12G-4S por SNMP/zabbix[host,snmp,available],{$SNMP.TIMEOUT})=0
+        name: 'MikroTik: Sem coleta de dados SNMP'
+        opdata: 'Estado atual: {ITEM.LASTVALUE1}'
+        priority: WARNING
+        description: SNMP nao esta disponivel para coleta. Verifique a conectividade do dispositivo e as configuracoes SNMP.
+        dependencies:
+        - name: 'MikroTik: Indisponivel por ping ICMP'
+          expression: max(/0Wnet - MikroTik CCR2116-12G-4S por SNMP/icmpping,#3)=0
+        tags:
+        - tag: escopo
+          value: disponibilidade
+    discovery_rules:
+    - uuid: 013264c4b53c4b9689668944bf03e124
+      name: Descoberta de CPU
+      type: DEPENDENT
+      key: hrProcessorLoad.discovery
+      delay: '0'
+      description: Descoberta HOST-RESOURCES-MIB::hrProcessorTable.
+      item_prototypes:
+      - uuid: 02a6c1dd6b6c466389c39bc50738ec43
+        name: '#{#SNMPINDEX}: Utilizacao de CPU'
+        type: DEPENDENT
+        key: system.cpu.util[hrProcessorLoad.{#SNMPINDEX}]
+        delay: '0'
+        value_type: FLOAT
+        units: '%'
+        description: 'MIB: HOST-RESOURCES-MIB
+
+          Media, no ultimo minuto, da porcentagem de tempo em que este processador nao ficou ocioso. Implementations may approximate
+          this one minute smoothing period if necessary.
+
+          '
+        preprocessing:
+        - type: SNMP_WALK_VALUE
+          parameters:
+          - 1.3.6.1.2.1.25.3.3.1.2.{#SNMPINDEX}
+          - '0'
+        master_item:
+          key: system.cpu.walk
+        tags:
+        - tag: componente
+          value: cpu
+        trigger_prototypes:
+        - uuid: 268f4aae10c9496f974ec55daf19adc0
+          expression: min(/0Wnet - MikroTik CCR2116-12G-4S por SNMP/system.cpu.util[hrProcessorLoad.{#SNMPINDEX}],5m)>{$CPU.UTIL.CRIT}
+          name: 'MikroTik: #{#SNMPINDEX}: Alta utilizacao de CPU'
+          event_name: 'MikroTik: #{#SNMPINDEX}: Alta utilizacao de CPU (acima de {$CPU.UTIL.CRIT}% por 5m)'
+          opdata: 'Utilizacao atual: {ITEM.LASTVALUE1}'
+          priority: WARNING
+          description: A utilizacao de CPU esta muito alta. O sistema pode responder lentamente.
+          tags:
+          - tag: escopo
+            value: desempenho
+      graph_prototypes:
+      - uuid: d6c783e402fa44acaa0cba9ef5c746bc
+        name: '#{#SNMPINDEX}: Utilizacao de CPU'
+        ymin_type_1: FIXED
+        ymax_type_1: FIXED
+        graph_items:
+        - drawtype: GRADIENT_LINE
+          color: 199C0D
+          item:
+            host: 0Wnet - MikroTik CCR2116-12G-4S por SNMP
+            key: system.cpu.util[hrProcessorLoad.{#SNMPINDEX}]
+      master_item:
+        key: system.cpu.walk
+      preprocessing:
+      - type: SNMP_WALK_TO_JSON
+        parameters:
+        - '{#SNMPVALUE}'
+        - 1.3.6.1.2.1.25.3.3.1.1
+        - '0'
+      - type: DISCARD_UNCHANGED_HEARTBEAT
+        parameters:
+        - 1h
+    - uuid: b5fcf6aae2534a42a0fa97a11755725f
+      name: Descoberta de temperatura da CPU
+      type: SNMP_AGENT
+      snmp_oid: walk[1.3.6.1.4.1.14988.1.1.3.10]
+      key: mtxrHlProcessorTemperature.discovery
+      delay: 1h
+      description: 'MIKROTIK-MIB::mtxrHlProcessorTemperature
+
+        Como a temperatura da CPU nao esta disponivel em todos os hardwares MikroTik, isso evita itens nao suportados.
+
+        '
+      item_prototypes:
+      - uuid: d8da5ce158cf4fe38fa683fa8171c9ba
+        name: 'CPU: Temperatura'
+        type: SNMP_AGENT
+        snmp_oid: get[1.3.6.1.4.1.14988.1.1.3.11.{#SNMPINDEX}]
+        key: sensor.temp.value[mtxrHlProcessorTemperature.{#SNMPINDEX}]
+        value_type: FLOAT
+        units: "\xB0C"
+        description: 'MIB: MIKROTIK-MIB
+
+          mtxrHlProcessorTemperature Temperatura do processador em Celsius (graus C).
+
+          Pode estar ausente em modelos de entrada (RB750, RB450G..).
+
+          '
+        preprocessing:
+        - type: MULTIPLIER
+          parameters:
+          - '0.1'
+        - type: DISCARD_UNCHANGED_HEARTBEAT
+          parameters:
+          - 3m
+        tags:
+        - tag: componente
+          value: temperatura
+        trigger_prototypes:
+        - uuid: a02a26b558154106b61e9acb1d2d769a
+          expression: avg(/0Wnet - MikroTik CCR2116-12G-4S por SNMP/sensor.temp.value[mtxrHlProcessorTemperature.{#SNMPINDEX}],5m)>{$TEMP_CRIT:"CPU"}
+          recovery_mode: RECOVERY_EXPRESSION
+          recovery_expression: max(/0Wnet - MikroTik CCR2116-12G-4S por SNMP/sensor.temp.value[mtxrHlProcessorTemperature.{#SNMPINDEX}],5m)<{$TEMP_CRIT:"CPU"}-3
+          name: 'MikroTik: CPU: Temperatura acima do limite critico'
+          event_name: 'MikroTik: CPU: Temperatura acima do limite critico: >{$TEMP_CRIT:"CPU"}'
+          opdata: 'Valor atual: {ITEM.LASTVALUE1}'
+          priority: HIGH
+          description: Este alerta usa os valores do sensor de temperatura e tambem o estado do sensor, quando disponivel.
+          tags:
+          - tag: escopo
+            value: disponibilidade
+          - tag: escopo
+            value: desempenho
+        - uuid: da100021a5d447f2b58e4edfb21d0b32
+          expression: avg(/0Wnet - MikroTik CCR2116-12G-4S por SNMP/sensor.temp.value[mtxrHlProcessorTemperature.{#SNMPINDEX}],5m)>{$TEMP_WARN:"CPU"}
+          recovery_mode: RECOVERY_EXPRESSION
+          recovery_expression: max(/0Wnet - MikroTik CCR2116-12G-4S por SNMP/sensor.temp.value[mtxrHlProcessorTemperature.{#SNMPINDEX}],5m)<{$TEMP_WARN:"CPU"}-3
+          name: 'MikroTik: CPU: Temperatura acima do limite de aviso'
+          event_name: 'MikroTik: CPU: Temperatura acima do limite de aviso: >{$TEMP_WARN:"CPU"}'
+          opdata: 'Valor atual: {ITEM.LASTVALUE1}'
+          priority: WARNING
+          description: Este alerta usa os valores do sensor de temperatura e tambem o estado do sensor, quando disponivel.
+          dependencies:
+          - name: 'MikroTik: CPU: Temperatura acima do limite critico'
+            expression: avg(/0Wnet - MikroTik CCR2116-12G-4S por SNMP/sensor.temp.value[mtxrHlProcessorTemperature.{#SNMPINDEX}],5m)>{$TEMP_CRIT:"CPU"}
+            recovery_expression: max(/0Wnet - MikroTik CCR2116-12G-4S por SNMP/sensor.temp.value[mtxrHlProcessorTemperature.{#SNMPINDEX}],5m)<{$TEMP_CRIT:"CPU"}-3
+          tags:
+          - tag: escopo
+            value: disponibilidade
+          - tag: escopo
+            value: desempenho
+        - uuid: e43d9198495f400eb17a71367a9ac8ee
+          expression: avg(/0Wnet - MikroTik CCR2116-12G-4S por SNMP/sensor.temp.value[mtxrHlProcessorTemperature.{#SNMPINDEX}],5m)<{$TEMP_CRIT_LOW:"CPU"}
+          recovery_mode: RECOVERY_EXPRESSION
+          recovery_expression: min(/0Wnet - MikroTik CCR2116-12G-4S por SNMP/sensor.temp.value[mtxrHlProcessorTemperature.{#SNMPINDEX}],5m)>{$TEMP_CRIT_LOW:"CPU"}+3
+          name: 'MikroTik: CPU: Temperatura muito baixa'
+          event_name: 'MikroTik: CPU: Temperatura muito baixa: <{$TEMP_CRIT_LOW:"CPU"}'
+          opdata: 'Valor atual: {ITEM.LASTVALUE1}'
+          priority: AVERAGE
+          tags:
+          - tag: escopo
+            value: disponibilidade
+          - tag: escopo
+            value: desempenho
+      preprocessing:
+      - type: SNMP_WALK_TO_JSON
+        parameters:
+        - '{#SNMPVALUE}'
+        - 1.3.6.1.4.1.14988.1.1.3.11
+        - '0'
+        error_handler: DISCARD_VALUE
+    - uuid: 4d898a7cbf214bb899fb0e5612ac6ee7
+      name: Descoberta de sensor de temperatura
+      type: SNMP_AGENT
+      snmp_oid: walk[1.3.6.1.4.1.14988.1.1.3.10]
+      key: mtxrHlTemperature.discovery
+      delay: 1h
+      description: 'MIKROTIK-MIB::mtxrHlTemperature
+
+        Como o sensor de temperatura nao esta disponivel em todos os hardwares MikroTik, isso evita itens nao suportados.
+
+        '
+      item_prototypes:
+      - uuid: 4760e6e3272346878461ce721043afc0
+        name: 'Dispositivo: Temperatura'
+        type: SNMP_AGENT
+        snmp_oid: get[1.3.6.1.4.1.14988.1.1.3.10.{#SNMPINDEX}]
+        key: sensor.temp.value[mtxrHlTemperature.{#SNMPINDEX}]
+        value_type: FLOAT
+        units: "\xB0C"
+        description: 'MIB: MIKROTIK-MIB
+
+          mtxrHlTemperature Temperatura do dispositivo em Celsius (graus C).
+
+          Pode estar ausente em modelos de entrada (RB750, RB450G..).
+
+
+          Reference: http://wiki.mikrotik.com/wiki/Manual:SNMP
+
+          '
+        preprocessing:
+        - type: MULTIPLIER
+          parameters:
+          - '0.1'
+        - type: DISCARD_UNCHANGED_HEARTBEAT
+          parameters:
+          - 3m
+        tags:
+        - tag: componente
+          value: temperatura
+        trigger_prototypes:
+        - uuid: 8e34e3796af346cfa7325e2247c3888e
+          expression: avg(/0Wnet - MikroTik CCR2116-12G-4S por SNMP/sensor.temp.value[mtxrHlTemperature.{#SNMPINDEX}],5m)>{$TEMP_CRIT:"Device"}
+          recovery_mode: RECOVERY_EXPRESSION
+          recovery_expression: max(/0Wnet - MikroTik CCR2116-12G-4S por SNMP/sensor.temp.value[mtxrHlTemperature.{#SNMPINDEX}],5m)<{$TEMP_CRIT:"Device"}-3
+          name: 'MikroTik: Dispositivo: Temperatura acima do limite critico'
+          event_name: 'MikroTik: Dispositivo: Temperatura acima do limite critico: >{$TEMP_CRIT:"Device"}'
+          opdata: 'Valor atual: {ITEM.LASTVALUE1}'
+          priority: HIGH
+          description: Este alerta usa os valores do sensor de temperatura e tambem o estado do sensor, quando disponivel.
+          tags:
+          - tag: escopo
+            value: disponibilidade
+          - tag: escopo
+            value: desempenho
+        - uuid: abe63d877a424f9eb7d23427d60eecfc
+          expression: avg(/0Wnet - MikroTik CCR2116-12G-4S por SNMP/sensor.temp.value[mtxrHlTemperature.{#SNMPINDEX}],5m)>{$TEMP_WARN:"Device"}
+          recovery_mode: RECOVERY_EXPRESSION
+          recovery_expression: max(/0Wnet - MikroTik CCR2116-12G-4S por SNMP/sensor.temp.value[mtxrHlTemperature.{#SNMPINDEX}],5m)<{$TEMP_WARN:"Device"}-3
+          name: 'MikroTik: Dispositivo: Temperatura acima do limite de aviso'
+          event_name: 'MikroTik: Dispositivo: Temperatura acima do limite de aviso: >{$TEMP_WARN:"Device"}'
+          opdata: 'Valor atual: {ITEM.LASTVALUE1}'
+          priority: WARNING
+          description: Este alerta usa os valores do sensor de temperatura e tambem o estado do sensor, quando disponivel.
+          dependencies:
+          - name: 'MikroTik: Dispositivo: Temperatura acima do limite critico'
+            expression: avg(/0Wnet - MikroTik CCR2116-12G-4S por SNMP/sensor.temp.value[mtxrHlTemperature.{#SNMPINDEX}],5m)>{$TEMP_CRIT:"Device"}
+            recovery_expression: max(/0Wnet - MikroTik CCR2116-12G-4S por SNMP/sensor.temp.value[mtxrHlTemperature.{#SNMPINDEX}],5m)<{$TEMP_CRIT:"Device"}-3
+          tags:
+          - tag: escopo
+            value: disponibilidade
+          - tag: escopo
+            value: desempenho
+        - uuid: 76a1379ed74f46e4bdae8f0b5cbb7fa4
+          expression: avg(/0Wnet - MikroTik CCR2116-12G-4S por SNMP/sensor.temp.value[mtxrHlTemperature.{#SNMPINDEX}],5m)<{$TEMP_CRIT_LOW:"Device"}
+          recovery_mode: RECOVERY_EXPRESSION
+          recovery_expression: min(/0Wnet - MikroTik CCR2116-12G-4S por SNMP/sensor.temp.value[mtxrHlTemperature.{#SNMPINDEX}],5m)>{$TEMP_CRIT_LOW:"Device"}+3
+          name: 'MikroTik: Dispositivo: Temperatura muito baixa'
+          event_name: 'MikroTik: Dispositivo: Temperatura muito baixa: <{$TEMP_CRIT_LOW:"Device"}'
+          opdata: 'Valor atual: {ITEM.LASTVALUE1}'
+          priority: AVERAGE
+          tags:
+          - tag: escopo
+            value: disponibilidade
+          - tag: escopo
+            value: desempenho
+      preprocessing:
+      - type: SNMP_WALK_TO_JSON
+        parameters:
+        - '{#SNMPVALUE}'
+        - 1.3.6.1.4.1.14988.1.1.3.10
+        - '0'
+        error_handler: DISCARD_VALUE
+    - uuid: fdfac3c109fe41588e57db5c93abb3a8
+      name: Descoberta de modem LTE
+      type: DEPENDENT
+      key: mtxrLTEModem.discovery
+      delay: '0'
+      filter:
+        evaltype: AND
+        conditions:
+        - macro: '{#IFNAME}'
+          value: '{$IFNAME.LTEMODEM.MATCHES}'
+          formulaid: A
+        - macro: '{#IFTYPE}'
+          value: ^1$
+          formulaid: B
+      description: MIKROTIK-MIB::mtxrLTEModemInterfaceIndex.
+      item_prototypes:
+      - uuid: 86ff9436fed84f8784162b8957f7f4bb
+        name: 'Interface {#IFNAME}({#IFALIAS}): Modem LTE RSRP'
+        type: DEPENDENT
+        key: lte.modem.rsrp[mtxrLTEModemSignalRSRP.{#SNMPINDEX}]
+        delay: '0'
+        value_type: FLOAT
+        units: dbm
+        description: 'MIB: MIKROTIK-MIB
+
+          mtxrLTEModemSignalRSRP Potencia recebida do sinal de referencia.
+
+          '
+        preprocessing:
+        - type: SNMP_WALK_VALUE
+          parameters:
+          - 1.3.6.1.4.1.14988.1.1.16.1.1.4.{#SNMPINDEX}
+          - '0'
+        master_item:
+          key: net.if.wireless.walk
+        tags:
+        - tag: componente
+          value: interface
+        - tag: componente
+          value: rede
+        - tag: interface
+          value: '{#IFNAME}'
+        trigger_prototypes:
+        - uuid: 230e0b9c7d984067af0436409665c6a8
+          expression: max(/0Wnet - MikroTik CCR2116-12G-4S por SNMP/lte.modem.rsrp[mtxrLTEModemSignalRSRP.{#SNMPINDEX}],5m)
+            < {$LTEMODEM.RSRP.MIN.WARN}
+          name: 'MikroTik: Interface {#IFNAME}({#IFALIAS}): RSRP do modem LTE baixo'
+          event_name: 'MikroTik: Interface {#IFNAME}({#IFALIAS}): RSRP do modem LTE baixo (abaixo de {$LTEMODEM.RSRP.MIN.WARN}dbm
+            por 5m)'
+          priority: WARNING
+          tags:
+          - tag: escopo
+            value: disponibilidade
+          - tag: escopo
+            value: desempenho
+      - uuid: e5c4303cc60a4f6480aac81f6af24a0c
+        name: 'Interface {#IFNAME}({#IFALIAS}): Modem LTE RSRQ'
+        type: DEPENDENT
+        key: lte.modem.rsrq[mtxrLTEModemSignalRSRQ.{#SNMPINDEX}]
+        delay: '0'
+        value_type: FLOAT
+        units: db
+        description: 'MIB: MIKROTIK-MIB
+
+          mtxrLTEModemSignalRSRQ Qualidade recebida do sinal de referencia.
+
+          '
+        preprocessing:
+        - type: SNMP_WALK_VALUE
+          parameters:
+          - 1.3.6.1.4.1.14988.1.1.16.1.1.3.{#SNMPINDEX}
+          - '0'
+        master_item:
+          key: net.if.wireless.walk
+        tags:
+        - tag: componente
+          value: interface
+        - tag: componente
+          value: rede
+        - tag: interface
+          value: '{#IFNAME}'
+        trigger_prototypes:
+        - uuid: e5d614ee34c6483faa55236434fd55a5
+          expression: max(/0Wnet - MikroTik CCR2116-12G-4S por SNMP/lte.modem.rsrq[mtxrLTEModemSignalRSRQ.{#SNMPINDEX}],5m)
+            < {$LTEMODEM.RSRQ.MIN.WARN}
+          name: 'MikroTik: Interface {#IFNAME}({#IFALIAS}): RSRQ do modem LTE baixo'
+          event_name: 'MikroTik: Interface {#IFNAME}({#IFALIAS}): RSRQ do modem LTE baixo (abaixo de {$LTEMODEM.RSRQ.MIN.WARN}db
+            por 5m)'
+          priority: WARNING
+          tags:
+          - tag: escopo
+            value: disponibilidade
+          - tag: escopo
+            value: desempenho
+      - uuid: ba108db2d9ed403d86b5586a19687cac
+        name: 'Interface {#IFNAME}({#IFALIAS}): Modem LTE RSSI'
+        type: DEPENDENT
+        key: lte.modem.rssi[mtxrLTEModemSignalRSSI.{#SNMPINDEX}]
+        delay: '0'
+        value_type: FLOAT
+        units: dbm
+        description: 'MIB: MIKROTIK-MIB
+
+          mtxrLTEModemSignalRSSI Indicador de intensidade do sinal recebido.
+
+          '
+        preprocessing:
+        - type: SNMP_WALK_VALUE
+          parameters:
+          - 1.3.6.1.4.1.14988.1.1.16.1.1.2.{#SNMPINDEX}
+          - '0'
+        master_item:
+          key: net.if.wireless.walk
+        tags:
+        - tag: componente
+          value: interface
+        - tag: componente
+          value: rede
+        - tag: interface
+          value: '{#IFNAME}'
+        trigger_prototypes:
+        - uuid: 4b37de2a661949d18f7f379d5403e241
+          expression: max(/0Wnet - MikroTik CCR2116-12G-4S por SNMP/lte.modem.rssi[mtxrLTEModemSignalRSSI.{#SNMPINDEX}],5m)
+            < {$LTEMODEM.RSSI.MIN.WARN}
+          name: 'MikroTik: Interface {#IFNAME}({#IFALIAS}): RSSI do modem LTE baixo'
+          event_name: 'MikroTik: Interface {#IFNAME}({#IFALIAS}): RSSI do modem LTE baixo (abaixo de {$LTEMODEM.RSSI.MIN.WARN}dbm
+            por 5m)'
+          priority: WARNING
+          tags:
+          - tag: escopo
+            value: disponibilidade
+          - tag: escopo
+            value: desempenho
+      - uuid: 411251e74096427bbbdc7b774144a41b
+        name: 'Interface {#IFNAME}({#IFALIAS}): Modem LTE SINR'
+        type: DEPENDENT
+        key: lte.modem.sinr[mtxrLTEModemSignalSINR.{#SNMPINDEX}]
+        delay: '0'
+        value_type: FLOAT
+        units: db
+        description: 'MIB: MIKROTIK-MIB
+
+          mtxrLTEModemSignalSINR Relacao sinal/interferencia e ruido.
+
+          '
+        preprocessing:
+        - type: SNMP_WALK_VALUE
+          parameters:
+          - 1.3.6.1.4.1.14988.1.1.16.1.1.7.{#SNMPINDEX}
+          - '0'
+        master_item:
+          key: net.if.wireless.walk
+        tags:
+        - tag: componente
+          value: interface
+        - tag: componente
+          value: rede
+        - tag: interface
+          value: '{#IFNAME}'
+        trigger_prototypes:
+        - uuid: dbe81f1c4e3e40d1a8c538bd9d156523
+          expression: max(/0Wnet - MikroTik CCR2116-12G-4S por SNMP/lte.modem.sinr[mtxrLTEModemSignalSINR.{#SNMPINDEX}],5m)
+            < {$LTEMODEM.SINR.MIN.WARN}
+          name: 'MikroTik: Interface {#IFNAME}({#IFALIAS}): SINR do modem LTE baixo'
+          event_name: 'MikroTik: Interface {#IFNAME}({#IFALIAS}): SINR do modem LTE baixo (abaixo de {$LTEMODEM.SINR.MIN.WARN}db
+            por 5m)'
+          priority: WARNING
+          tags:
+          - tag: escopo
+            value: disponibilidade
+          - tag: escopo
+            value: desempenho
+      graph_prototypes:
+      - uuid: 0abf052cfc1f4aee9105b3dbf2237391
+        name: 'Interface {#IFNAME}({#IFALIAS}): Sinal do modem. {#SNMPINDEX}'
+        graph_items:
+        - color: 199C0D
+          item:
+            host: 0Wnet - MikroTik CCR2116-12G-4S por SNMP
+            key: lte.modem.sinr[mtxrLTEModemSignalSINR.{#SNMPINDEX}]
+        - sortorder: '1'
+          color: F63100
+          item:
+            host: 0Wnet - MikroTik CCR2116-12G-4S por SNMP
+            key: lte.modem.rsrq[mtxrLTEModemSignalRSRQ.{#SNMPINDEX}]
+        - sortorder: '2'
+          color: 00611C
+          item:
+            host: 0Wnet - MikroTik CCR2116-12G-4S por SNMP
+            key: lte.modem.rsrp[mtxrLTEModemSignalRSRP.{#SNMPINDEX}]
+        - sortorder: '3'
+          color: F7941D
+          item:
+            host: 0Wnet - MikroTik CCR2116-12G-4S por SNMP
+            key: lte.modem.rssi[mtxrLTEModemSignalRSSI.{#SNMPINDEX}]
+      master_item:
+        key: net.if.wireless.walk
+      preprocessing:
+      - type: SNMP_WALK_TO_JSON
+        parameters:
+        - '{#IFNAME}'
+        - 1.3.6.1.4.1.14988.1.1.14.1.1.2
+        - '0'
+        - '{#IFALIAS}'
+        - 1.3.6.1.2.1.31.1.1.1.18
+        - '0'
+        - '{#IFTYPE}'
+        - 1.3.6.1.2.1.2.2.1.3
+        - '0'
+      - type: DISCARD_UNCHANGED_HEARTBEAT
+        parameters:
+        - 1h
+    - uuid: 984cc6b7bc7043a783c076be2e6035c7
+      name: Descoberta de canal AP
+      type: DEPENDENT
+      key: mtxrWlAp.discovery
+      delay: '0'
+      filter:
+        evaltype: AND
+        conditions:
+        - macro: '{#IFADMINSTATUS}'
+          value: ^1$
+          formulaid: A
+        - macro: '{#IFTYPE}'
+          value: ^71$
+          formulaid: B
+      description: MIKROTIK-MIB::mtxrWlAp.
+      item_prototypes:
+      - uuid: 0e069c6cd4b64438bc534deec15dc91f
+        name: 'Interface {#IFNAME}({#IFALIAS}): Clientes AP autenticados'
+        type: DEPENDENT
+        key: ssid.authclient[mtxrWlApAuthClientCount.{#SNMPINDEX}]
+        delay: '0'
+        description: 'MIB: MIKROTIK-MIB
+
+          mtxrWlApAuthClientCount Numero de clientes de autenticacao.
+
+          '
+        preprocessing:
+        - type: SNMP_WALK_VALUE
+          parameters:
+          - 1.3.6.1.4.1.14988.1.1.1.3.1.11.{#SNMPINDEX}
+          - '0'
+        master_item:
+          key: net.if.wireless.walk
+        tags:
+        - tag: componente
+          value: interface
+        - tag: componente
+          value: rede
+        - tag: interface
+          value: '{#IFNAME}'
+      - uuid: 891220637d214cf38ae369b57316604e
+        name: 'Interface {#IFNAME}({#IFALIAS}): Banda AP'
+        type: DEPENDENT
+        key: ssid.band[mtxrWlApBand.{#SNMPINDEX}]
+        delay: '0'
+        value_type: CHAR
+        trends: '0'
+        description: 'MIB: MIKROTIK-MIB
+
+          mtxrWlApBand
+
+          '
+        preprocessing:
+        - type: SNMP_WALK_VALUE
+          parameters:
+          - 1.3.6.1.4.1.14988.1.1.1.3.1.8.{#SNMPINDEX}
+          - '0'
+        - type: DISCARD_UNCHANGED_HEARTBEAT
+          parameters:
+          - 1h
+        master_item:
+          key: net.if.wireless.walk
+        tags:
+        - tag: componente
+          value: interface
+        - tag: componente
+          value: rede
+        - tag: interface
+          value: '{#IFNAME}'
+      - uuid: 895fed60ac5f4ad09aecb1a080545a47
+        name: 'Interface {#IFNAME}({#IFALIAS}): SSID'
+        type: DEPENDENT
+        key: ssid.name[mtxrWlApSsid.{#SNMPINDEX}]
+        delay: '0'
+        value_type: CHAR
+        trends: '0'
+        description: 'MIB: MIKROTIK-MIB
+
+          mtxrWlApSsid Service Set Identifier.
+
+          '
+        preprocessing:
+        - type: SNMP_WALK_VALUE
+          parameters:
+          - 1.3.6.1.4.1.14988.1.1.1.3.1.4.{#SNMPINDEX}
+          - '0'
+        - type: DISCARD_UNCHANGED_HEARTBEAT
+          parameters:
+          - 1h
+        master_item:
+          key: net.if.wireless.walk
+        tags:
+        - tag: componente
+          value: interface
+        - tag: componente
+          value: rede
+        - tag: interface
+          value: '{#IFNAME}'
+      - uuid: 5b5866c4dcc745928c4539477dd58267
+        name: 'Interface {#IFNAME}({#IFALIAS}): Piso de ruido AP'
+        type: DEPENDENT
+        key: ssid.noise[mtxrWlApNoiseFloor.{#SNMPINDEX}]
+        delay: '0'
+        value_type: FLOAT
+        description: 'MIB: MIKROTIK-MIB
+
+          mtxrWlApNoiseFloor
+
+          '
+        preprocessing:
+        - type: SNMP_WALK_VALUE
+          parameters:
+          - 1.3.6.1.4.1.14988.1.1.1.3.1.9.{#SNMPINDEX}
+          - '0'
+        - type: DISCARD_UNCHANGED_HEARTBEAT
+          parameters:
+          - 15m
+        master_item:
+          key: net.if.wireless.walk
+        tags:
+        - tag: componente
+          value: interface
+        - tag: componente
+          value: rede
+        - tag: interface
+          value: '{#IFNAME}'
+      - uuid: f892a61e00ee45718323cf96756500f0
+        name: 'Interface {#IFNAME}({#IFALIAS}): Clientes AP registrados'
+        type: DEPENDENT
+        key: ssid.regclient[mtxrWlApClientCount.{#SNMPINDEX}]
+        delay: '0'
+        description: 'MIB: MIKROTIK-MIB
+
+          mtxrWlApClientCount Cliente estabeleceu conexao com o AP, mas nao concluiu todos os procedimentos de autenticacao
+          para conexao completa.
+
+          '
+        preprocessing:
+        - type: SNMP_WALK_VALUE
+          parameters:
+          - 1.3.6.1.4.1.14988.1.1.1.3.1.6.{#SNMPINDEX}
+          - '0'
+        master_item:
+          key: net.if.wireless.walk
+        tags:
+        - tag: componente
+          value: interface
+        - tag: componente
+          value: rede
+        - tag: interface
+          value: '{#IFNAME}'
+      master_item:
+        key: net.if.wireless.walk
+      preprocessing:
+      - type: SNMP_WALK_TO_JSON
+        parameters:
+        - '{#IFNAME}'
+        - 1.3.6.1.4.1.14988.1.1.14.1.1.2
+        - '0'
+        - '{#IFALIAS}'
+        - 1.3.6.1.2.1.31.1.1.1.18
+        - '0'
+        - '{#IFTYPE}'
+        - 1.3.6.1.2.1.2.2.1.3
+        - '0'
+        - '{#IFADMINSTATUS}'
+        - 1.3.6.1.2.1.2.2.1.7
+        - '0'
+      - type: DISCARD_UNCHANGED_HEARTBEAT
+        parameters:
+        - 1h
+    - uuid: 0a6526af88b94cedb72786c1deab57f6
+      name: Descoberta de canal AP CAPsMAN
+      type: DEPENDENT
+      key: mtxrWlCMChannel.discovery
+      delay: '0'
+      filter:
+        evaltype: AND
+        conditions:
+        - macro: '{#IFNAME}'
+          value: '{$IFNAME.WIFI.MATCHES}'
+          formulaid: A
+        - macro: '{#IFTYPE}'
+          value: ^1$
+          formulaid: B
+      description: MIKROTIK-MIB::mtxrWlCMChannel.
+      item_prototypes:
+      - uuid: 5fd6c507236d42d7a300b1696b697d53
+        name: 'Interface {#IFNAME}({#IFALIAS}): Clientes AP autenticados'
+        type: DEPENDENT
+        key: ssid.authclient[mtxrWlCMAuthClientCount.{#SNMPINDEX}]
+        delay: '0'
+        description: 'MIB: MIKROTIK-MIB
+
+          mtxrWlCMAuthClientCount Numero de clientes de autenticacao.
+
+          '
+        preprocessing:
+        - type: SNMP_WALK_VALUE
+          parameters:
+          - 1.3.6.1.4.1.14988.1.1.1.7.1.3.{#SNMPINDEX}
+          - '0'
+        master_item:
+          key: net.if.wireless.walk
+        tags:
+        - tag: componente
+          value: interface
+        - tag: componente
+          value: rede
+        - tag: interface
+          value: '{#IFNAME}'
+      - uuid: 785ed2cd1bea4cb79c1309d742bc2bd7
+        name: 'Interface {#IFNAME}({#IFALIAS}): Canal AP'
+        type: DEPENDENT
+        key: ssid.channel[mtxrWlCMChannel.{#SNMPINDEX}]
+        delay: '0'
+        value_type: CHAR
+        trends: '0'
+        description: 'MIB: MIKROTIK-MIB
+
+          mtxrWlCMChannel
+
+          '
+        preprocessing:
+        - type: SNMP_WALK_VALUE
+          parameters:
+          - 1.3.6.1.4.1.14988.1.1.1.7.1.5.{#SNMPINDEX}
+          - '0'
+        - type: DISCARD_UNCHANGED_HEARTBEAT
+          parameters:
+          - 1h
+        master_item:
+          key: net.if.wireless.walk
+        tags:
+        - tag: componente
+          value: interface
+        - tag: componente
+          value: rede
+        - tag: interface
+          value: '{#IFNAME}'
+      - uuid: c6ed2cf0cc254df8aa189a01718be652
+        name: 'Interface {#IFNAME}({#IFALIAS}): Clientes AP registrados'
+        type: DEPENDENT
+        key: ssid.regclient[mtxrWlCMRegClientCount.{#SNMPINDEX}]
+        delay: '0'
+        description: 'MIB: MIKROTIK-MIB
+
+          mtxrWlCMRegClientCount Cliente estabeleceu conexao com o AP, mas nao concluiu todos os procedimentos de autenticacao
+          para conexao completa.
+
+          '
+        preprocessing:
+        - type: SNMP_WALK_VALUE
+          parameters:
+          - 1.3.6.1.4.1.14988.1.1.1.7.1.2.{#SNMPINDEX}
+          - '0'
+        master_item:
+          key: net.if.wireless.walk
+        tags:
+        - tag: componente
+          value: interface
+        - tag: componente
+          value: rede
+        - tag: interface
+          value: '{#IFNAME}'
+      - uuid: 47051757fd864147820fdfc281bd94f0
+        name: 'Interface {#IFNAME}({#IFALIAS}): Estado AP'
+        type: DEPENDENT
+        key: ssid.state[mtxrWlCMState.{#SNMPINDEX}]
+        delay: '0'
+        value_type: CHAR
+        trends: '0'
+        description: 'MIB: MIKROTIK-MIB
+
+          mtxrWlCMState Estado da interface sem fio.
+
+          '
+        preprocessing:
+        - type: SNMP_WALK_VALUE
+          parameters:
+          - 1.3.6.1.4.1.14988.1.1.1.7.1.4.{#SNMPINDEX}
+          - '0'
+        - type: DISCARD_UNCHANGED_HEARTBEAT
+          parameters:
+          - 1h
+        master_item:
+          key: net.if.wireless.walk
+        tags:
+        - tag: componente
+          value: interface
+        - tag: componente
+          value: rede
+        - tag: interface
+          value: '{#IFNAME}'
+        trigger_prototypes:
+        - uuid: 3d93db33383a4d01b7b31206658c01ec
+          expression: last(/0Wnet - MikroTik CCR2116-12G-4S por SNMP/ssid.state[mtxrWlCMState.{#SNMPINDEX}])<>"running-ap"
+          name: 'MikroTik: Interface {#IFNAME}({#IFALIAS}): Interface AP {#IFNAME}({#IFALIAS}) nao esta em execucao'
+          priority: WARNING
+          description: 'A interface do ponto de acesso pode nao estar em execucao por diferentes motivos: interface desativada,
+            equipamento desligado ou link de rede inoperante.'
+          tags:
+          - tag: escopo
+            value: disponibilidade
+          - tag: escopo
+            value: desempenho
+      master_item:
+        key: net.if.wireless.walk
+      preprocessing:
+      - type: SNMP_WALK_TO_JSON
+        parameters:
+        - '{#IFNAME}'
+        - 1.3.6.1.4.1.14988.1.1.14.1.1.2
+        - '0'
+        - '{#IFALIAS}'
+        - 1.3.6.1.2.1.31.1.1.1.18
+        - '0'
+        - '{#IFTYPE}'
+        - 1.3.6.1.2.1.2.2.1.3
+        - '0'
+      - type: DISCARD_UNCHANGED_HEARTBEAT
+        parameters:
+        - 1h
+    - uuid: 773c07c11d3348e198911b56f939705c
+      name: Descoberta de interfaces de rede
+      type: DEPENDENT
+      key: net.if.discovery
+      delay: '0'
+      filter:
+        evaltype: AND
+        conditions:
+        - macro: '{#IFADMINSTATUS}'
+          value: '{$NET.IF.IFADMINSTATUS.MATCHES}'
+          formulaid: A
+        - macro: '{#IFADMINSTATUS}'
+          value: '{$NET.IF.IFADMINSTATUS.NOT_MATCHES}'
+          operator: NOT_MATCHES_REGEX
+          formulaid: B
+        - macro: '{#IFALIAS}'
+          value: '{$NET.IF.IFALIAS.MATCHES}'
+          formulaid: C
+        - macro: '{#IFALIAS}'
+          value: '{$NET.IF.IFALIAS.NOT_MATCHES}'
+          operator: NOT_MATCHES_REGEX
+          formulaid: D
+        - macro: '{#IFDESCR}'
+          value: '{$NET.IF.IFDESCR.MATCHES}'
+          formulaid: E
+        - macro: '{#IFDESCR}'
+          value: '{$NET.IF.IFDESCR.NOT_MATCHES}'
+          operator: NOT_MATCHES_REGEX
+          formulaid: F
+        - macro: '{#IFNAME}'
+          value: '{$NET.IF.IFNAME.MATCHES}'
+          formulaid: G
+        - macro: '{#IFNAME}'
+          value: '{$NET.IF.IFNAME.NOT_MATCHES}'
+          operator: NOT_MATCHES_REGEX
+          formulaid: H
+        - macro: '{#IFOPERSTATUS}'
+          value: '{$NET.IF.IFOPERSTATUS.MATCHES}'
+          formulaid: I
+        - macro: '{#IFOPERSTATUS}'
+          value: '{$NET.IF.IFOPERSTATUS.NOT_MATCHES}'
+          operator: NOT_MATCHES_REGEX
+          formulaid: J
+        - macro: '{#IFTYPE}'
+          value: '{$NET.IF.IFTYPE.MATCHES}'
+          formulaid: K
+        - macro: '{#IFTYPE}'
+          value: '{$NET.IF.IFTYPE.NOT_MATCHES}'
+          operator: NOT_MATCHES_REGEX
+          formulaid: L
+      description: Descoberta de interfaces pela IF-MIB.
+      item_prototypes:
+      - uuid: 5b5126a5315545e993ee2b4a2a5a6cfd
+        name: 'Interface {#IFNAME}({#IFALIAS}): Pacotes de entrada descartados'
+        type: DEPENDENT
+        key: net.if.in.discards[ifInDiscards.{#SNMPINDEX}]
+        delay: '0'
+        description: 'MIB: IF-MIB
+
+          Numero de pacotes de entrada which were chosen to be discarded
+
+          even though no errors had been detected to prevent their being deliverable to a higher-layer protocol.
+
+          One possible reason for discarding such a packet could be to free up buffer space.
+
+          Discontinuities in the value of this counter can occur at re-initialization of the management system,
+
+          and at other times as indicated by the value of ifCounterDiscontinuityTime.
+
+          '
+        preprocessing:
+        - type: SNMP_WALK_VALUE
+          parameters:
+          - 1.3.6.1.2.1.2.2.1.13.{#SNMPINDEX}
+          - '0'
+        - type: CHANGE_PER_SECOND
+          parameters:
+          - ''
+        - type: DISCARD_UNCHANGED_HEARTBEAT
+          parameters:
+          - 3m
+        master_item:
+          key: net.if.walk
+        tags:
+        - tag: componente
+          value: rede
+        - tag: descricao
+          value: '{#IFALIAS}'
+        - tag: interface
+          value: '{#IFNAME}'
+      - uuid: d0d9298d044a45e6aeabd2a52f42dafb
+        name: 'Interface {#IFNAME}({#IFALIAS}): Pacotes de entrada com erros'
+        type: DEPENDENT
+        key: net.if.in.errors[ifInErrors.{#SNMPINDEX}]
+        delay: '0'
+        description: 'MIB: IF-MIB
+
+          For packet-oriented interfaces, the number of inbound packets that contained errors preventing them from being deliverable
+          to a higher-layer protocol.  For character-oriented or fixed-length interfaces, the number of inbound transmission
+          units that contained errors preventing them from being deliverable to a higher-layer protocol. Discontinuities in
+          the value of this counter can occur at re-initialization of the management system, and at other times as indicated
+          by the value of ifCounterDiscontinuityTime.
+
+          '
+        preprocessing:
+        - type: SNMP_WALK_VALUE
+          parameters:
+          - 1.3.6.1.2.1.2.2.1.14.{#SNMPINDEX}
+          - '0'
+        - type: CHANGE_PER_SECOND
+          parameters:
+          - ''
+        - type: DISCARD_UNCHANGED_HEARTBEAT
+          parameters:
+          - 3m
+        master_item:
+          key: net.if.walk
+        tags:
+        - tag: componente
+          value: rede
+        - tag: descricao
+          value: '{#IFALIAS}'
+        - tag: interface
+          value: '{#IFNAME}'
+      - uuid: f412c34bb78c447996fae16d44ab9b64
+        name: 'Interface {#IFNAME}({#IFALIAS}): Bits recebidos'
+        type: DEPENDENT
+        key: net.if.in[ifHCInOctets.{#SNMPINDEX}]
+        delay: '0'
+        units: bps
+        description: 'MIB: IF-MIB
+
+          Numero total de octetos recebidos na interface, including framing characters. This object is a 64-bit version of
+          ifInOctets. Discontinuities in the value of this counter can occur at re-initialization of the management system,
+          and at other times as indicated by the value of ifCounterDiscontinuityTime.
+
+          '
+        preprocessing:
+        - type: SNMP_WALK_VALUE
+          parameters:
+          - 1.3.6.1.2.1.31.1.1.1.6.{#SNMPINDEX}
+          - '0'
+        - type: CHANGE_PER_SECOND
+          parameters:
+          - ''
+        - type: MULTIPLIER
+          parameters:
+          - '8'
+        master_item:
+          key: net.if.walk
+        tags:
+        - tag: componente
+          value: rede
+        - tag: descricao
+          value: '{#IFALIAS}'
+        - tag: interface
+          value: '{#IFNAME}'
+      - uuid: d481ef0660cd49d2aa6ee59d150f4adc
+        name: 'Interface {#IFNAME}({#IFALIAS}): Pacotes de saida descartados'
+        type: DEPENDENT
+        key: net.if.out.discards[ifOutDiscards.{#SNMPINDEX}]
+        delay: '0'
+        description: 'MIB: IF-MIB
+
+          Numero de pacotes de saida which were chosen to be discarded
+
+          even though no errors had been detected to prevent their being deliverable to a higher-layer protocol.
+
+          One possible reason for discarding such a packet could be to free up buffer space.
+
+          Discontinuities in the value of this counter can occur at re-initialization of the management system,
+
+          and at other times as indicated by the value of ifCounterDiscontinuityTime.
+
+          '
+        preprocessing:
+        - type: SNMP_WALK_VALUE
+          parameters:
+          - 1.3.6.1.2.1.2.2.1.19.{#SNMPINDEX}
+          - '0'
+        - type: CHANGE_PER_SECOND
+          parameters:
+          - ''
+        - type: DISCARD_UNCHANGED_HEARTBEAT
+          parameters:
+          - 3m
+        master_item:
+          key: net.if.walk
+        tags:
+        - tag: componente
+          value: rede
+        - tag: descricao
+          value: '{#IFALIAS}'
+        - tag: interface
+          value: '{#IFNAME}'
+      - uuid: 75799f4af51b481cb70dc51344b6e24b
+        name: 'Interface {#IFNAME}({#IFALIAS}): Pacotes de saida com erros'
+        type: DEPENDENT
+        key: net.if.out.errors[ifOutErrors.{#SNMPINDEX}]
+        delay: '0'
+        description: 'MIB: IF-MIB
+
+          For packet-oriented interfaces, the number of outbound packets that contained errors preventing them from being
+          deliverable to a higher-layer protocol.  For character-oriented or fixed-length interfaces, the number of outbound
+          transmission units that contained errors preventing them from being deliverable to a higher-layer protocol. Discontinuities
+          in the value of this counter can occur at re-initialization of the management system, and at other times as indicated
+          by the value of ifCounterDiscontinuityTime.
+
+          '
+        preprocessing:
+        - type: SNMP_WALK_VALUE
+          parameters:
+          - 1.3.6.1.2.1.2.2.1.20.{#SNMPINDEX}
+          - '0'
+        - type: CHANGE_PER_SECOND
+          parameters:
+          - ''
+        - type: DISCARD_UNCHANGED_HEARTBEAT
+          parameters:
+          - 3m
+        master_item:
+          key: net.if.walk
+        tags:
+        - tag: componente
+          value: rede
+        - tag: descricao
+          value: '{#IFALIAS}'
+        - tag: interface
+          value: '{#IFNAME}'
+      - uuid: 9465e269162f46649d07ed24f9f94688
+        name: 'Interface {#IFNAME}({#IFALIAS}): Bits enviados'
+        type: DEPENDENT
+        key: net.if.out[ifHCOutOctets.{#SNMPINDEX}]
+        delay: '0'
+        units: bps
+        description: 'MIB: IF-MIB
+
+          Numero total de octetos transmitidos pela interface, including framing characters. This object is a 64-bit version
+          of ifOutOctets.Discontinuities in the value of this counter can occur at re-initialization of the management system,
+          and at other times as indicated by the value of ifCounterDiscontinuityTime.
+
+          '
+        preprocessing:
+        - type: SNMP_WALK_VALUE
+          parameters:
+          - 1.3.6.1.2.1.31.1.1.1.10.{#SNMPINDEX}
+          - '0'
+        - type: CHANGE_PER_SECOND
+          parameters:
+          - ''
+        - type: MULTIPLIER
+          parameters:
+          - '8'
+        master_item:
+          key: net.if.walk
+        tags:
+        - tag: componente
+          value: rede
+        - tag: descricao
+          value: '{#IFALIAS}'
+        - tag: interface
+          value: '{#IFNAME}'
+      - uuid: b17d3e53940a4af7ab65b47e2f7eaf0b
+        name: 'Interface {#IFNAME}({#IFALIAS}): Velocidade'
+        type: DEPENDENT
+        key: net.if.speed[ifHighSpeed.{#SNMPINDEX}]
+        delay: '0'
+        trends: '0'
+        units: bps
+        description: 'MIB: IF-MIB
+
+          Estimativa da largura de banda atual da interface em unidades de 1.000.000 bits por segundo. Se este objeto reportar
+          o valor `n`, entao a velocidade da interface esta aproximadamente no intervalo de `n-500.000` a `n+499.999`.
+
+          Para interfaces que nao variam em largura de banda, ou quando nenhuma estimativa precisa puder ser feita, este objeto
+          deve conter a largura de banda nominal.
+
+          Para uma subcamada que nao tenha conceito de largura de banda, este objeto deve ser zero.
+
+          '
+        preprocessing:
+        - type: SNMP_WALK_VALUE
+          parameters:
+          - 1.3.6.1.2.1.31.1.1.1.15.{#SNMPINDEX}
+          - '0'
+        - type: MULTIPLIER
+          parameters:
+          - '1000000'
+        - type: DISCARD_UNCHANGED_HEARTBEAT
+          parameters:
+          - 1h
+        master_item:
+          key: net.if.walk
+        tags:
+        - tag: componente
+          value: rede
+        - tag: descricao
+          value: '{#IFALIAS}'
+        - tag: interface
+          value: '{#IFNAME}'
+      - uuid: 59d092fc57024e6eb8032698b57235cb
+        name: 'Interface {#IFNAME}({#IFALIAS}): Estado operacional'
+        type: DEPENDENT
+        key: net.if.status[ifOperStatus.{#SNMPINDEX}]
+        delay: '0'
+        trends: '0'
+        description: "MIB: IF-MIB\nEstado operacional atual da interface.\n- O estado testing(3) indica que nenhum pacote\
+          \ operacional pode passar\n- Se ifAdminStatus estiver down(2), entao ifOperStatus deve estar down(2)\n- Se ifAdminStatus\
+          \ mudar para up(1), entao ifOperStatus deve mudar para up(1) se a interface estiver pronta para transmitir e receber\
+          \ trafego de rede\n- Deve mudar para dormant(5) se a interface estiver aguardando acoes externas (como uma linha\
+          \ serial aguardando uma conexao de entrada)\n- Deve permanecer no estado down(2) se, e somente se, houver uma falha\
+          \ que impe\xE7a a ida para o estado up(1)\n- Deve permanecer no estado notPresent(6) se faltarem componentes da\
+          \ interface (normalmente hardware).\n"
+        valuemap:
+          name: IF-MIB::Estado operacional
+        preprocessing:
+        - type: SNMP_WALK_VALUE
+          parameters:
+          - 1.3.6.1.2.1.2.2.1.8.{#SNMPINDEX}
+          - '0'
+        master_item:
+          key: net.if.walk
+        tags:
+        - tag: componente
+          value: rede
+        - tag: descricao
+          value: '{#IFALIAS}'
+        - tag: interface
+          value: '{#IFNAME}'
+        trigger_prototypes:
+        - uuid: 3b7699830e6545b7977c1b003bd526e3
+          expression: '{$IFCONTROL:"{#IFNAME}"}=1 and last(/0Wnet - MikroTik CCR2116-12G-4S por SNMP/net.if.status[ifOperStatus.{#SNMPINDEX}])=2
+            and (last(/0Wnet - MikroTik CCR2116-12G-4S por SNMP/net.if.status[ifOperStatus.{#SNMPINDEX}],#1)<>last(/0Wnet
+            - MikroTik CCR2116-12G-4S por SNMP/net.if.status[ifOperStatus.{#SNMPINDEX}],#2))'
+          recovery_mode: RECOVERY_EXPRESSION
+          recovery_expression: last(/0Wnet - MikroTik CCR2116-12G-4S por SNMP/net.if.status[ifOperStatus.{#SNMPINDEX}])<>2
+            or {$IFCONTROL:"{#IFNAME}"}=0
+          name: 'MikroTik: Interface {#IFNAME}({#IFALIAS}): Link inoperante'
+          opdata: 'Estado atual: {ITEM.LASTVALUE1}'
+          priority: AVERAGE
+          description: 'Esta expressao de alerta funciona assim:
+
+            1. It can be triggered if the operations status is down.
+
+            2. `{$IFCONTROL:"{#IFNAME}"}=1` - a user can redefine the context macro to "0", marking this interface as not
+            important. No new trigger will be fired if this interface is down.
+
+            3. `last(/TEMPLATE_NAME/METRIC,#1)<>last(/TEMPLATE_NAME/METRIC,#2)` - the trigger fires only if the operational
+            status was up to (1) sometime before (so, does not fire for "eternal off" interfaces.)
+
+
+            AVISO: se fechado manualmente - it will not fire again on the next poll, because of .diff.
+
+            '
+          manual_close: 'YES'
+          tags:
+          - tag: escopo
+            value: disponibilidade
+      - uuid: 45dfedc3e4a54c86a67c1ff4a9f8ab02
+        name: 'Interface {#IFNAME}({#IFALIAS}): Tipo de interface'
+        type: DEPENDENT
+        key: net.if.type[ifType.{#SNMPINDEX}]
+        delay: '0'
+        trends: '0'
+        description: 'MIB: IF-MIB
+
+          Tipo da interface.
+
+          Additional values for ifType are assigned by the Internet Assigned Numbers Authority (IANA),
+
+          through updating the syntax of the IANAifType textual convention.
+
+          '
+        valuemap:
+          name: IF-MIB::Tipo de interface
+        preprocessing:
+        - type: SNMP_WALK_VALUE
+          parameters:
+          - 1.3.6.1.2.1.2.2.1.3.{#SNMPINDEX}
+          - '0'
+        - type: DISCARD_UNCHANGED_HEARTBEAT
+          parameters:
+          - 1d
+        master_item:
+          key: net.if.walk
+        tags:
+        - tag: componente
+          value: rede
+        - tag: descricao
+          value: '{#IFALIAS}'
+        - tag: interface
+          value: '{#IFNAME}'
+      trigger_prototypes:
+      - uuid: 84d6692c26bf46c082d13ca9bf85b928
+        expression: 'change(/0Wnet - MikroTik CCR2116-12G-4S por SNMP/net.if.speed[ifHighSpeed.{#SNMPINDEX}])<0 and last(/0Wnet
+          - MikroTik CCR2116-12G-4S por SNMP/net.if.speed[ifHighSpeed.{#SNMPINDEX}])>0
+
+          and (
+
+          last(/0Wnet - MikroTik CCR2116-12G-4S por SNMP/net.if.type[ifType.{#SNMPINDEX}])=6 or
+
+          last(/0Wnet - MikroTik CCR2116-12G-4S por SNMP/net.if.type[ifType.{#SNMPINDEX}])=7 or
+
+          last(/0Wnet - MikroTik CCR2116-12G-4S por SNMP/net.if.type[ifType.{#SNMPINDEX}])=11 or
+
+          last(/0Wnet - MikroTik CCR2116-12G-4S por SNMP/net.if.type[ifType.{#SNMPINDEX}])=62 or
+
+          last(/0Wnet - MikroTik CCR2116-12G-4S por SNMP/net.if.type[ifType.{#SNMPINDEX}])=69 or
+
+          last(/0Wnet - MikroTik CCR2116-12G-4S por SNMP/net.if.type[ifType.{#SNMPINDEX}])=117
+
+          )
+
+          and
+
+          (last(/0Wnet - MikroTik CCR2116-12G-4S por SNMP/net.if.status[ifOperStatus.{#SNMPINDEX}])<>2)
+
+          '
+        recovery_mode: RECOVERY_EXPRESSION
+        recovery_expression: '(change(/0Wnet - MikroTik CCR2116-12G-4S por SNMP/net.if.speed[ifHighSpeed.{#SNMPINDEX}])>0
+          and last(/0Wnet - MikroTik CCR2116-12G-4S por SNMP/net.if.speed[ifHighSpeed.{#SNMPINDEX}],#2)>0) or
+
+          (last(/0Wnet - MikroTik CCR2116-12G-4S por SNMP/net.if.status[ifOperStatus.{#SNMPINDEX}])=2)
+
+          '
+        name: 'MikroTik: Interface {#IFNAME}({#IFALIAS}): Ethernet mudou para velocidade menor que antes'
+        opdata: 'Velocidade reportada atual: {ITEM.LASTVALUE1}'
+        priority: INFO
+        description: Esta conexao Ethernet caiu em relacao a velocidade maxima conhecida. Isso pode indicar problemas de autonegociacao.
+          Reconheca para fechar o problema manualmente.
+        manual_close: 'YES'
+        dependencies:
+        - name: 'MikroTik: Interface {#IFNAME}({#IFALIAS}): Link inoperante'
+          expression: '{$IFCONTROL:"{#IFNAME}"}=1 and last(/0Wnet - MikroTik CCR2116-12G-4S por SNMP/net.if.status[ifOperStatus.{#SNMPINDEX}])=2
+            and (last(/0Wnet - MikroTik CCR2116-12G-4S por SNMP/net.if.status[ifOperStatus.{#SNMPINDEX}],#1)<>last(/0Wnet
+            - MikroTik CCR2116-12G-4S por SNMP/net.if.status[ifOperStatus.{#SNMPINDEX}],#2))'
+          recovery_expression: last(/0Wnet - MikroTik CCR2116-12G-4S por SNMP/net.if.status[ifOperStatus.{#SNMPINDEX}])<>2
+            or {$IFCONTROL:"{#IFNAME}"}=0
+        tags:
+        - tag: escopo
+          value: desempenho
+      - uuid: 5589536b0f684e9ca1db7f27b0415188
+        expression: '(avg(/0Wnet - MikroTik CCR2116-12G-4S por SNMP/net.if.in[ifHCInOctets.{#SNMPINDEX}],15m)>({$IF.UTIL.MAX:"{#IFNAME}"}/100)*last(/0Wnet
+          - MikroTik CCR2116-12G-4S por SNMP/net.if.speed[ifHighSpeed.{#SNMPINDEX}]) or
+
+          avg(/0Wnet - MikroTik CCR2116-12G-4S por SNMP/net.if.out[ifHCOutOctets.{#SNMPINDEX}],15m)>({$IF.UTIL.MAX:"{#IFNAME}"}/100)*last(/0Wnet
+          - MikroTik CCR2116-12G-4S por SNMP/net.if.speed[ifHighSpeed.{#SNMPINDEX}])) and
+
+          last(/0Wnet - MikroTik CCR2116-12G-4S por SNMP/net.if.speed[ifHighSpeed.{#SNMPINDEX}])>0
+
+          '
+        recovery_mode: RECOVERY_EXPRESSION
+        recovery_expression: 'avg(/0Wnet - MikroTik CCR2116-12G-4S por SNMP/net.if.in[ifHCInOctets.{#SNMPINDEX}],15m)<(({$IF.UTIL.MAX:"{#IFNAME}"}-3)/100)*last(/0Wnet
+          - MikroTik CCR2116-12G-4S por SNMP/net.if.speed[ifHighSpeed.{#SNMPINDEX}]) and
+
+          avg(/0Wnet - MikroTik CCR2116-12G-4S por SNMP/net.if.out[ifHCOutOctets.{#SNMPINDEX}],15m)<(({$IF.UTIL.MAX:"{#IFNAME}"}-3)/100)*last(/0Wnet
+          - MikroTik CCR2116-12G-4S por SNMP/net.if.speed[ifHighSpeed.{#SNMPINDEX}])
+
+          '
+        name: 'MikroTik: Interface {#IFNAME}({#IFALIAS}): Alto uso de banda'
+        event_name: 'MikroTik: Interface {#IFNAME}({#IFALIAS}): Alto uso de banda (>{$IF.UTIL.MAX:"{#IFNAME}"}%)'
+        opdata: 'Entrada: {ITEM.LASTVALUE1}, saida: {ITEM.LASTVALUE3}, velocidade: {ITEM.LASTVALUE2}'
+        priority: WARNING
+        description: A utilizacao da interface de rede esta proxima da largura de banda maxima estimada.
+        manual_close: 'YES'
+        dependencies:
+        - name: 'MikroTik: Interface {#IFNAME}({#IFALIAS}): Link inoperante'
+          expression: '{$IFCONTROL:"{#IFNAME}"}=1 and last(/0Wnet - MikroTik CCR2116-12G-4S por SNMP/net.if.status[ifOperStatus.{#SNMPINDEX}])=2
+            and (last(/0Wnet - MikroTik CCR2116-12G-4S por SNMP/net.if.status[ifOperStatus.{#SNMPINDEX}],#1)<>last(/0Wnet
+            - MikroTik CCR2116-12G-4S por SNMP/net.if.status[ifOperStatus.{#SNMPINDEX}],#2))'
+          recovery_expression: last(/0Wnet - MikroTik CCR2116-12G-4S por SNMP/net.if.status[ifOperStatus.{#SNMPINDEX}])<>2
+            or {$IFCONTROL:"{#IFNAME}"}=0
+        tags:
+        - tag: escopo
+          value: desempenho
+      - uuid: a7714d374abf4451b1d26d9eb78b10d3
+        expression: 'min(/0Wnet - MikroTik CCR2116-12G-4S por SNMP/net.if.in.errors[ifInErrors.{#SNMPINDEX}],5m)>{$IF.ERRORS.WARN:"{#IFNAME}"}
+
+          or min(/0Wnet - MikroTik CCR2116-12G-4S por SNMP/net.if.out.errors[ifOutErrors.{#SNMPINDEX}],5m)>{$IF.ERRORS.WARN:"{#IFNAME}"}
+
+          '
+        recovery_mode: RECOVERY_EXPRESSION
+        recovery_expression: 'max(/0Wnet - MikroTik CCR2116-12G-4S por SNMP/net.if.in.errors[ifInErrors.{#SNMPINDEX}],5m)<{$IF.ERRORS.WARN:"{#IFNAME}"}*0.8
+
+          and max(/0Wnet - MikroTik CCR2116-12G-4S por SNMP/net.if.out.errors[ifOutErrors.{#SNMPINDEX}],5m)<{$IF.ERRORS.WARN:"{#IFNAME}"}*0.8
+
+          '
+        name: 'MikroTik: Interface {#IFNAME}({#IFALIAS}): Alta taxa de erros'
+        event_name: 'MikroTik: Interface {#IFNAME}({#IFALIAS}): Alta taxa de erros (>{$IF.ERRORS.WARN:"{#IFNAME}"} por 5m)'
+        opdata: 'erros entrada: {ITEM.LASTVALUE1}, erros saida: {ITEM.LASTVALUE2}'
+        priority: WARNING
+        description: Recupera quando fica abaixo de 80% do limite `{$IF.ERRORS.WARN:"{#IFNAME}"}`.
+        manual_close: 'YES'
+        dependencies:
+        - name: 'MikroTik: Interface {#IFNAME}({#IFALIAS}): Link inoperante'
+          expression: '{$IFCONTROL:"{#IFNAME}"}=1 and last(/0Wnet - MikroTik CCR2116-12G-4S por SNMP/net.if.status[ifOperStatus.{#SNMPINDEX}])=2
+            and (last(/0Wnet - MikroTik CCR2116-12G-4S por SNMP/net.if.status[ifOperStatus.{#SNMPINDEX}],#1)<>last(/0Wnet
+            - MikroTik CCR2116-12G-4S por SNMP/net.if.status[ifOperStatus.{#SNMPINDEX}],#2))'
+          recovery_expression: last(/0Wnet - MikroTik CCR2116-12G-4S por SNMP/net.if.status[ifOperStatus.{#SNMPINDEX}])<>2
+            or {$IFCONTROL:"{#IFNAME}"}=0
+        tags:
+        - tag: escopo
+          value: disponibilidade
+        - tag: escopo
+          value: desempenho
+      graph_prototypes:
+      - uuid: 5a96a364d09c4eca8f0fa950d80a261b
+        name: 'Interface {#IFNAME}({#IFALIAS}): Trafego de rede'
+        graph_items:
+        - drawtype: GRADIENT_LINE
+          color: 199C0D
+          item:
+            host: 0Wnet - MikroTik CCR2116-12G-4S por SNMP
+            key: net.if.in[ifHCInOctets.{#SNMPINDEX}]
+        - sortorder: '1'
+          drawtype: BOLD_LINE
+          color: F63100
+          item:
+            host: 0Wnet - MikroTik CCR2116-12G-4S por SNMP
+            key: net.if.out[ifHCOutOctets.{#SNMPINDEX}]
+        - sortorder: '2'
+          color: 00611C
+          yaxisside: RIGHT
+          item:
+            host: 0Wnet - MikroTik CCR2116-12G-4S por SNMP
+            key: net.if.out.errors[ifOutErrors.{#SNMPINDEX}]
+        - sortorder: '3'
+          color: F7941D
+          yaxisside: RIGHT
+          item:
+            host: 0Wnet - MikroTik CCR2116-12G-4S por SNMP
+            key: net.if.in.errors[ifInErrors.{#SNMPINDEX}]
+        - sortorder: '4'
+          color: FC6EA3
+          yaxisside: RIGHT
+          item:
+            host: 0Wnet - MikroTik CCR2116-12G-4S por SNMP
+            key: net.if.out.discards[ifOutDiscards.{#SNMPINDEX}]
+        - sortorder: '5'
+          color: 6C59DC
+          yaxisside: RIGHT
+          item:
+            host: 0Wnet - MikroTik CCR2116-12G-4S por SNMP
+            key: net.if.in.discards[ifInDiscards.{#SNMPINDEX}]
+      master_item:
+        key: net.if.walk
+      preprocessing:
+      - type: SNMP_WALK_TO_JSON
+        parameters:
+        - '{#IFOPERSTATUS}'
+        - 1.3.6.1.2.1.2.2.1.8
+        - '0'
+        - '{#IFADMINSTATUS}'
+        - 1.3.6.1.2.1.2.2.1.7
+        - '0'
+        - '{#IFALIAS}'
+        - 1.3.6.1.2.1.31.1.1.1.18
+        - '0'
+        - '{#IFNAME}'
+        - 1.3.6.1.2.1.31.1.1.1.1
+        - '0'
+        - '{#IFDESCR}'
+        - 1.3.6.1.2.1.2.2.1.2
+        - '0'
+        - '{#IFTYPE}'
+        - 1.3.6.1.2.1.2.2.1.3
+        - '0'
+      - type: DISCARD_UNCHANGED_HEARTBEAT
+        parameters:
+        - 1h
+    - uuid: 44a4a50450fa421b9eed22e83d3b0d5e
+      name: Descoberta de armazenamento
+      type: DEPENDENT
+      key: storage.discovery
+      delay: '0'
+      filter:
+        evaltype: OR
+        conditions:
+        - macro: '{#STORAGE_TYPE}'
+          value: .+4$
+          formulaid: A
+        - macro: '{#STORAGE_TYPE}'
+          value: .+hrStorageFixedDisk
+          formulaid: B
+      description: Descoberta HOST-RESOURCES-MIB::hrStorage com filtro de armazenamento.
+      item_prototypes:
+      - uuid: 4b69a4cb35c34e1c9a9fb780edca873c
+        name: 'Disco-{#SNMPINDEX}: Utilizacao de espaco'
+        type: CALCULATED
+        key: vfs.fs.pused[hrStorageSize.{#SNMPINDEX}]
+        value_type: FLOAT
+        units: '%'
+        params: (last(//vfs.fs.used[hrStorageSize.{#SNMPINDEX}])/last(//vfs.fs.total[hrStorageSize.{#SNMPINDEX}]))*100
+        description: Utilizacao de espaco em % para Disco-{#SNMPINDEX}.
+        tags:
+        - tag: componente
+          value: armazenamento
+        - tag: sistema de arquivos
+          value: '{#FSNAME}'
+      - uuid: 9569c151909a4f91aa83c47116e1e654
+        name: 'Disco-{#SNMPINDEX}: Espaco total'
+        type: DEPENDENT
+        key: vfs.fs.total[hrStorageSize.{#SNMPINDEX}]
+        delay: '0'
+        units: B
+        description: 'MIB: HOST-RESOURCES-MIB
+
+          Tamanho do armazenamento representado por esta entrada, em unidades de hrStorageAllocationUnits. Este objeto e gravavel
+          para permitir a configuracao remota do tamanho da area de armazenamento nos casos em que essa operacao faz sentido
+          e e possivel no sistema subjacente. Por exemplo, a quantidade de memoria principal alocada para um buffer pool pode
+          ser modificada, ou a quantidade de espaco em disco alocada para memoria virtual pode ser modificada.
+
+          '
+        preprocessing:
+        - type: SNMP_WALK_VALUE
+          parameters:
+          - 1.3.6.1.2.1.25.2.3.1.5.{#SNMPINDEX}
+          - '0'
+        - type: MULTIPLIER
+          parameters:
+          - '1024'
+        master_item:
+          key: vfs.fs.walk
+        tags:
+        - tag: componente
+          value: armazenamento
+        - tag: sistema de arquivos
+          value: '{#FSNAME}'
+      - uuid: accf3439327849b89da58adfd33eefd2
+        name: 'Disco-{#SNMPINDEX}: Espaco usado'
+        type: DEPENDENT
+        key: vfs.fs.used[hrStorageSize.{#SNMPINDEX}]
+        delay: '0'
+        units: B
+        description: 'MIB: HOST-RESOURCES-MIB
+
+          Quantidade do armazenamento representado por esta entrada que esta alocada, em unidades de hrStorageAllocationUnits.
+
+          '
+        preprocessing:
+        - type: SNMP_WALK_VALUE
+          parameters:
+          - 1.3.6.1.2.1.25.2.3.1.6.{#SNMPINDEX}
+          - '0'
+        - type: MULTIPLIER
+          parameters:
+          - '1024'
+        master_item:
+          key: vfs.fs.walk
+        tags:
+        - tag: componente
+          value: armazenamento
+        - tag: sistema de arquivos
+          value: '{#FSNAME}'
+      trigger_prototypes:
+      - uuid: abb5bfa0d4d7458287b89903f62f9f2e
+        expression: 'last(/0Wnet - MikroTik CCR2116-12G-4S por SNMP/vfs.fs.pused[hrStorageSize.{#SNMPINDEX}])>{$VFS.FS.PUSED.MAX.CRIT:"Disk-{#SNMPINDEX}"}
+          and
+
+          ((last(/0Wnet - MikroTik CCR2116-12G-4S por SNMP/vfs.fs.total[hrStorageSize.{#SNMPINDEX}])-last(/0Wnet - MikroTik
+          CCR2116-12G-4S por SNMP/vfs.fs.used[hrStorageSize.{#SNMPINDEX}]))<{$VFS.FS.FREE.MIN.CRIT:"Disk-{#SNMPINDEX}"} or
+          timeleft(/0Wnet - MikroTik CCR2116-12G-4S por SNMP/vfs.fs.pused[hrStorageSize.{#SNMPINDEX}],1h,100)<1d)
+
+          '
+        name: 'MikroTik: Disco-{#SNMPINDEX}: Espaco em disco criticamente baixo'
+        event_name: 'MikroTik: Disco-{#SNMPINDEX}: Espaco em disco criticamente baixo (usado > {$VFS.FS.PUSED.MAX.CRIT:"Disk-{#SNMPINDEX}"}%)'
+        opdata: 'Espaco usado: {ITEM.LASTVALUE3} de {ITEM.LASTVALUE2} ({ITEM.LASTVALUE1})'
+        priority: AVERAGE
+        description: "Duas condicoes devem corresponder: Primeiro, a utilizacao de espaco deve estar acima de {$VFS.FS.PUSED.MAX.CRIT:\"\
+          Disk-{#SNMPINDEX}\"}.\n A segunda condicao deve ser uma das seguintes:\n - O espaco livre em disco e menor que {$VFS.FS.FREE.MIN.CRIT:\"\
+          Disk-{#SNMPINDEX}\"}.\n - O disco ficara cheio em menos de 24 horas.\n"
+        manual_close: 'YES'
+        tags:
+        - tag: escopo
+          value: disponibilidade
+        - tag: escopo
+          value: capacidade
+      - uuid: 6d29359c4292469f9aa0dbc4f428347a
+        expression: 'last(/0Wnet - MikroTik CCR2116-12G-4S por SNMP/vfs.fs.pused[hrStorageSize.{#SNMPINDEX}])>{$VFS.FS.PUSED.MAX.WARN:"Disk-{#SNMPINDEX}"}
+          and
+
+          ((last(/0Wnet - MikroTik CCR2116-12G-4S por SNMP/vfs.fs.total[hrStorageSize.{#SNMPINDEX}])-last(/0Wnet - MikroTik
+          CCR2116-12G-4S por SNMP/vfs.fs.used[hrStorageSize.{#SNMPINDEX}]))<{$VFS.FS.FREE.MIN.WARN:"Disk-{#SNMPINDEX}"} or
+          timeleft(/0Wnet - MikroTik CCR2116-12G-4S por SNMP/vfs.fs.pused[hrStorageSize.{#SNMPINDEX}],1h,100)<1d)
+
+          '
+        name: 'MikroTik: Disco-{#SNMPINDEX}: Espaco em disco baixo'
+        event_name: 'MikroTik: Disco-{#SNMPINDEX}: Espaco em disco baixo (usado > {$VFS.FS.PUSED.MAX.WARN:"Disk-{#SNMPINDEX}"}%)'
+        opdata: 'Espaco usado: {ITEM.LASTVALUE3} de {ITEM.LASTVALUE2} ({ITEM.LASTVALUE1})'
+        priority: WARNING
+        description: "Duas condicoes devem corresponder: Primeiro, a utilizacao de espaco deve estar acima de {$VFS.FS.PUSED.MAX.WARN:\"\
+          Disk-{#SNMPINDEX}\"}.\n A segunda condicao deve ser uma das seguintes:\n - O espaco livre em disco e menor que {$VFS.FS.FREE.MIN.WARN:\"\
+          Disk-{#SNMPINDEX}\"}.\n - O disco ficara cheio em menos de 24 horas.\n"
+        manual_close: 'YES'
+        dependencies:
+        - name: 'MikroTik: Disco-{#SNMPINDEX}: Espaco em disco criticamente baixo'
+          expression: 'last(/0Wnet - MikroTik CCR2116-12G-4S por SNMP/vfs.fs.pused[hrStorageSize.{#SNMPINDEX}])>{$VFS.FS.PUSED.MAX.CRIT:"Disk-{#SNMPINDEX}"}
+            and
+
+            ((last(/0Wnet - MikroTik CCR2116-12G-4S por SNMP/vfs.fs.total[hrStorageSize.{#SNMPINDEX}])-last(/0Wnet - MikroTik
+            CCR2116-12G-4S por SNMP/vfs.fs.used[hrStorageSize.{#SNMPINDEX}]))<{$VFS.FS.FREE.MIN.CRIT:"Disk-{#SNMPINDEX}"}
+            or timeleft(/0Wnet - MikroTik CCR2116-12G-4S por SNMP/vfs.fs.pused[hrStorageSize.{#SNMPINDEX}],1h,100)<1d)
+
+            '
+        tags:
+        - tag: escopo
+          value: disponibilidade
+        - tag: escopo
+          value: capacidade
+      graph_prototypes:
+      - uuid: 7e8c4139dcc341e881275e78ec43df80
+        name: 'Disco-{#SNMPINDEX}: Uso de espaco em disco'
+        width: '600'
+        height: '340'
+        type: PIE
+        show_3d: 'YES'
+        graph_items:
+        - color: '969696'
+          calc_fnc: LAST
+          type: GRAPH_SUM
+          item:
+            host: 0Wnet - MikroTik CCR2116-12G-4S por SNMP
+            key: vfs.fs.total[hrStorageSize.{#SNMPINDEX}]
+        - sortorder: '1'
+          color: C80000
+          calc_fnc: LAST
+          item:
+            host: 0Wnet - MikroTik CCR2116-12G-4S por SNMP
+            key: vfs.fs.used[hrStorageSize.{#SNMPINDEX}]
+      master_item:
+        key: vfs.fs.walk
+      preprocessing:
+      - type: SNMP_WALK_TO_JSON
+        parameters:
+        - '{#FSNAME}'
+        - 1.3.6.1.2.1.25.2.3.1.3
+        - '0'
+        - '{#ALLOC_UNITS}'
+        - 1.3.6.1.2.1.25.2.3.1.4
+        - '0'
+        - '{#STORAGE_TYPE}'
+        - 1.3.6.1.2.1.25.2.3.1.2
+        - '0'
+      - type: DISCARD_UNCHANGED_HEARTBEAT
+        parameters:
+        - 1h
+    tags:
+    - tag: class
+      value: rede
+    - tag: target
+      value: crs317-1g-16splusrm
+    - tag: target
+      value: mikrotik
+    macros:
+    - macro: '{$CPU.UTIL.CRIT}'
+      value: '90'
+    - macro: '{$ICMP_LOSS_WARN}'
+      value: '20'
+      description: Limite de aviso de perda de pacotes ICMP em %.
+    - macro: '{$ICMP_RESPONSE_TIME_WARN}'
+      value: '0.15'
+      description: Limite de aviso do tempo medio de resposta ICMP em segundos.
+    - macro: '{$IF.ERRORS.WARN}'
+      value: '2'
+      description: Limite de aviso para taxa de pacotes com erro. Pode ser usado com o nome da interface como contexto.
+    - macro: '{$IF.UTIL.MAX}'
+      value: '90'
+      description: Usado como limite no alerta de utilizacao da interface.
+    - macro: '{$IFCONTROL}'
+      value: '1'
+      description: O alerta de estado do link sera disparado apenas para interfaces em que a macro de contexto seja igual
+        a "1".
+    - macro: '{$IFNAME.LTEMODEM.MATCHES}'
+      value: ^lte
+      description: Esta macro e usada na descoberta de modem LTE. Pode ser sobrescrita no host.
+    - macro: '{$IFNAME.WIFI.MATCHES}'
+      value: WIFI
+      description: Esta macro e usada na descoberta de canal AP CAPsMAN. Pode ser sobrescrita no nivel do host.
+    - macro: '{$LTEMODEM.RSRP.MIN.WARN}'
+      value: '-100'
+      description: Valor minimo de RSRP do modem LTE para expressao de alerta de aviso.
+    - macro: '{$LTEMODEM.RSRQ.MIN.WARN}'
+      value: '-20'
+      description: Valor minimo de RSRQ do modem LTE para expressao de alerta de aviso.
+    - macro: '{$LTEMODEM.RSSI.MIN.WARN}'
+      value: '-100'
+      description: Valor minimo de RSSI do modem LTE para expressao de alerta de aviso.
+    - macro: '{$LTEMODEM.SINR.MIN.WARN}'
+      value: '0'
+      description: Valor minimo de SINR do modem LTE para expressao de alerta de aviso.
+    - macro: '{$MEMORY.UTIL.MAX}'
+      value: '90'
+    - macro: '{$NET.IF.IFADMINSTATUS.MATCHES}'
+      value: ^.*
+      description: Usado nos filtros da regra de descoberta de interfaces de rede.
+    - macro: '{$NET.IF.IFADMINSTATUS.NOT_MATCHES}'
+      value: ^2$
+      description: Ignora estado administrativo `down(2)`.
+    - macro: '{$NET.IF.IFALIAS.MATCHES}'
+      value: .*
+      description: Usado nos filtros da regra de descoberta de interfaces de rede.
+    - macro: '{$NET.IF.IFALIAS.NOT_MATCHES}'
+      value: CHANGE_IF_NEEDED
+      description: Usado nos filtros da regra de descoberta de interfaces de rede.
+    - macro: '{$NET.IF.IFDESCR.MATCHES}'
+      value: .*
+      description: Usado nos filtros da regra de descoberta de interfaces de rede.
+    - macro: '{$NET.IF.IFDESCR.NOT_MATCHES}'
+      value: CHANGE_IF_NEEDED
+      description: Usado nos filtros da regra de descoberta de interfaces de rede.
+    - macro: '{$NET.IF.IFNAME.MATCHES}'
+      value: ^.*$
+      description: Usado na descoberta de interfaces de rede. Pode ser sobrescrito no host ou no template vinculado.
+    - macro: '{$NET.IF.IFNAME.NOT_MATCHES}'
+      value: (^Software Loopback Interface|^NULL[0-9.]*$|^[Ll]o[0-9.]*$|^[Ss]ystem$|^Nu[0-9.]*$|^veth[0-9a-z]+$|docker[0-9]+|br-[a-z0-9]{12})
+      description: Filtra por padrao `loopbacks`, `nulls`, links docker `veth` e `docker0 bridge`.
+    - macro: '{$NET.IF.IFOPERSTATUS.MATCHES}'
+      value: ^.*$
+      description: Usado na descoberta de interfaces de rede. Pode ser sobrescrito no host ou no template vinculado.
+    - macro: '{$NET.IF.IFOPERSTATUS.NOT_MATCHES}'
+      value: ^6$
+      description: Ignora `notPresent(6)`.
+    - macro: '{$NET.IF.IFTYPE.MATCHES}'
+      value: .*
+      description: Usado nos filtros da regra de descoberta de interfaces de rede.
+    - macro: '{$NET.IF.IFTYPE.NOT_MATCHES}'
+      value: CHANGE_IF_NEEDED
+      description: Usado nos filtros da regra de descoberta de interfaces de rede.
+    - macro: '{$SNMP.TIMEOUT}'
+      value: 5m
+      description: Intervalo de tempo para o alerta de disponibilidade SNMP.
+    - macro: '{$TEMP_CRIT}'
+      value: '60'
+    - macro: '{$TEMP_CRIT:"CPU"}'
+      value: '75'
+    - macro: '{$TEMP_CRIT_LOW}'
+      value: '5'
+    - macro: '{$TEMP_WARN}'
+      value: '50'
+    - macro: '{$TEMP_WARN:"CPU"}'
+      value: '70'
+    - macro: '{$VFS.FS.PUSED.MAX.CRIT}'
+      value: '90'
+    - macro: '{$VFS.FS.PUSED.MAX.WARN}'
+      value: '80'
+    dashboards:
+    - uuid: 8631baf8ec4543de97b7e74944e35b80
+      name: Interfaces de rede
+      pages:
+      - widgets:
+        - type: graphprototype
+          width: '72'
+          height: '5'
+          fields:
+          - type: INTEGER
+            name: columns
+            value: '1'
+          - type: GRAPH_PROTOTYPE
+            name: graphid.0
+            value:
+              host: 0Wnet - MikroTik CCR2116-12G-4S por SNMP
+              name: 'Interface {#IFNAME}({#IFALIAS}): Trafego de rede'
+          - type: STRING
+            name: reference
+            value: AAAAA
+    valuemaps:
+    - uuid: 34031ba8ab644b7fbe21cf12dfa88251
+      name: IF-MIB::Estado operacional
+      mappings:
+      - value: '1'
+        newvalue: operacional
+      - value: '2'
+        newvalue: inoperante
+      - value: '4'
+        newvalue: desconhecido
+      - value: '5'
+        newvalue: inativo
+      - value: '6'
+        newvalue: ausente
+      - value: '7'
+        newvalue: camada inferior inoperante
+    - uuid: 613d1ab0ee674158be039cfcd7b5c851
+      name: IF-MIB::Tipo de interface
+      mappings:
+      - value: '1'
+        newvalue: other
+      - value: '2'
+        newvalue: regular1822
+      - value: '3'
+        newvalue: hdh1822
+      - value: '4'
+        newvalue: ddnX25
+      - value: '5'
+        newvalue: rfc877x25
+      - value: '6'
+        newvalue: ethernetCsmacd
+      - value: '7'
+        newvalue: iso88023Csmacd
+      - value: '8'
+        newvalue: iso88024TokenBus
+      - value: '9'
+        newvalue: iso88025TokenRing
+      - value: '10'
+        newvalue: iso88026Man
+      - value: '11'
+        newvalue: starLan
+      - value: '12'
+        newvalue: proteon10Mbit
+      - value: '13'
+        newvalue: proteon80Mbit
+      - value: '14'
+        newvalue: hyperchannel
+      - value: '15'
+        newvalue: fddi
+      - value: '16'
+        newvalue: lapb
+      - value: '17'
+        newvalue: sdlc
+      - value: '18'
+        newvalue: ds1
+      - value: '19'
+        newvalue: e1
+      - value: '20'
+        newvalue: basicISDN
+      - value: '21'
+        newvalue: primaryISDN
+      - value: '22'
+        newvalue: propPointToPointSerial
+      - value: '23'
+        newvalue: ppp
+      - value: '24'
+        newvalue: softwareLoopback
+      - value: '25'
+        newvalue: eon
+      - value: '26'
+        newvalue: ethernet3Mbit
+      - value: '27'
+        newvalue: nsip
+      - value: '28'
+        newvalue: slip
+      - value: '29'
+        newvalue: ultra
+      - value: '30'
+        newvalue: ds3
+      - value: '31'
+        newvalue: sip
+      - value: '32'
+        newvalue: frameRelay
+      - value: '33'
+        newvalue: rs232
+      - value: '34'
+        newvalue: para
+      - value: '35'
+        newvalue: arcnet
+      - value: '36'
+        newvalue: arcnetPlus
+      - value: '37'
+        newvalue: atm
+      - value: '38'
+        newvalue: miox25
+      - value: '39'
+        newvalue: sonet
+      - value: '40'
+        newvalue: x25ple
+      - value: '41'
+        newvalue: iso88022llc
+      - value: '42'
+        newvalue: localTalk
+      - value: '43'
+        newvalue: smdsDxi
+      - value: '44'
+        newvalue: frameRelayService
+      - value: '45'
+        newvalue: v35
+      - value: '46'
+        newvalue: hssi
+      - value: '47'
+        newvalue: hippi
+      - value: '48'
+        newvalue: modem
+      - value: '49'
+        newvalue: aal5
+      - value: '50'
+        newvalue: sonetPath
+      - value: '51'
+        newvalue: sonetVT
+      - value: '52'
+        newvalue: smdsIcip
+      - value: '53'
+        newvalue: propVirtual
+      - value: '54'
+        newvalue: propMultiplexor
+      - value: '55'
+        newvalue: ieee80212
+      - value: '56'
+        newvalue: fibreChannel
+      - value: '57'
+        newvalue: hippiInterface
+      - value: '58'
+        newvalue: frameRelayInterconnect
+      - value: '59'
+        newvalue: aflane8023
+      - value: '60'
+        newvalue: aflane8025
+      - value: '61'
+        newvalue: cctEmul
+      - value: '62'
+        newvalue: fastEther
+      - value: '63'
+        newvalue: isdn
+      - value: '64'
+        newvalue: v11
+      - value: '65'
+        newvalue: v36
+      - value: '66'
+        newvalue: g703at64k
+      - value: '67'
+        newvalue: g703at2mb
+      - value: '68'
+        newvalue: qllc
+      - value: '69'
+        newvalue: fastEtherFX
+      - value: '70'
+        newvalue: channel
+      - value: '71'
+        newvalue: ieee80211
+      - value: '72'
+        newvalue: ibm370parChan
+      - value: '73'
+        newvalue: escon
+      - value: '74'
+        newvalue: dlsw
+      - value: '75'
+        newvalue: isdns
+      - value: '76'
+        newvalue: isdnu
+      - value: '77'
+        newvalue: lapd
+      - value: '78'
+        newvalue: ipSwitch
+      - value: '79'
+        newvalue: rsrb
+      - value: '80'
+        newvalue: atmLogical
+      - value: '81'
+        newvalue: ds0
+      - value: '82'
+        newvalue: ds0Bundle
+      - value: '83'
+        newvalue: bsc
+      - value: '84'
+        newvalue: async
+      - value: '85'
+        newvalue: cnr
+      - value: '86'
+        newvalue: iso88025Dtr
+      - value: '87'
+        newvalue: eplrs
+      - value: '88'
+        newvalue: arap
+      - value: '89'
+        newvalue: propCnls
+      - value: '90'
+        newvalue: hostPad
+      - value: '91'
+        newvalue: termPad
+      - value: '92'
+        newvalue: frameRelayMPI
+      - value: '93'
+        newvalue: x213
+      - value: '94'
+        newvalue: adsl
+      - value: '95'
+        newvalue: radsl
+      - value: '96'
+        newvalue: sdsl
+      - value: '97'
+        newvalue: vdsl
+      - value: '98'
+        newvalue: iso88025CRFPInt
+      - value: '99'
+        newvalue: myrinet
+      - value: '100'
+        newvalue: voiceEM
+      - value: '101'
+        newvalue: voiceFXO
+      - value: '102'
+        newvalue: voiceFXS
+      - value: '103'
+        newvalue: voiceEncap
+      - value: '104'
+        newvalue: voiceOverIp
+      - value: '105'
+        newvalue: atmDxi
+      - value: '106'
+        newvalue: atmFuni
+      - value: '107'
+        newvalue: atmIma
+      - value: '108'
+        newvalue: pppMultilinkBundle
+      - value: '109'
+        newvalue: ipOverCdlc
+      - value: '110'
+        newvalue: ipOverClaw
+      - value: '111'
+        newvalue: stackToStack
+      - value: '112'
+        newvalue: virtualIpAddress
+      - value: '113'
+        newvalue: mpc
+      - value: '114'
+        newvalue: ipOverAtm
+      - value: '115'
+        newvalue: iso88025Fiber
+      - value: '116'
+        newvalue: tdlc
+      - value: '117'
+        newvalue: gigabitEthernet
+      - value: '118'
+        newvalue: hdlc
+      - value: '119'
+        newvalue: lapf
+      - value: '120'
+        newvalue: v37
+      - value: '121'
+        newvalue: x25mlp
+      - value: '122'
+        newvalue: x25huntGroup
+      - value: '123'
+        newvalue: trasnpHdlc
+      - value: '124'
+        newvalue: interleave
+      - value: '125'
+        newvalue: fast
+      - value: '126'
+        newvalue: ip
+      - value: '127'
+        newvalue: docsCableMaclayer
+      - value: '128'
+        newvalue: docsCableDownstream
+      - value: '129'
+        newvalue: docsCableUpstream
+      - value: '130'
+        newvalue: a12MppSwitch
+      - value: '131'
+        newvalue: tunnel
+      - value: '132'
+        newvalue: coffee
+      - value: '133'
+        newvalue: ces
+      - value: '134'
+        newvalue: atmSubInterface
+      - value: '135'
+        newvalue: l2vlan
+      - value: '136'
+        newvalue: l3ipvlan
+      - value: '137'
+        newvalue: l3ipxvlan
+      - value: '138'
+        newvalue: digitalPowerline
+      - value: '139'
+        newvalue: mediaMailOverIp
+      - value: '140'
+        newvalue: dtm
+      - value: '141'
+        newvalue: dcn
+      - value: '142'
+        newvalue: ipForward
+      - value: '143'
+        newvalue: msdsl
+      - value: '144'
+        newvalue: ieee1394
+      - value: '145'
+        newvalue: if-gsn
+      - value: '146'
+        newvalue: dvbRccMacLayer
+      - value: '147'
+        newvalue: dvbRccDownstream
+      - value: '148'
+        newvalue: dvbRccUpstream
+      - value: '149'
+        newvalue: atmVirtual
+      - value: '150'
+        newvalue: mplsTunnel
+      - value: '151'
+        newvalue: srp
+      - value: '152'
+        newvalue: voiceOverAtm
+      - value: '153'
+        newvalue: voiceOverFrameRelay
+      - value: '154'
+        newvalue: idsl
+      - value: '155'
+        newvalue: compositeLink
+      - value: '156'
+        newvalue: ss7SigLink
+      - value: '157'
+        newvalue: propWirelessP2P
+      - value: '158'
+        newvalue: frForward
+      - value: '159'
+        newvalue: rfc1483
+      - value: '160'
+        newvalue: usb
+      - value: '161'
+        newvalue: ieee8023adLag
+      - value: '162'
+        newvalue: bgppolicyaccounting
+      - value: '163'
+        newvalue: frf16MfrBundle
+      - value: '164'
+        newvalue: h323Gatekeeper
+      - value: '165'
+        newvalue: h323Proxy
+      - value: '166'
+        newvalue: mpls
+      - value: '167'
+        newvalue: mfSigLink
+      - value: '168'
+        newvalue: hdsl2
+      - value: '169'
+        newvalue: shdsl
+      - value: '170'
+        newvalue: ds1FDL
+      - value: '171'
+        newvalue: pos
+      - value: '172'
+        newvalue: dvbAsiIn
+      - value: '173'
+        newvalue: dvbAsiOut
+      - value: '174'
+        newvalue: plc
+      - value: '175'
+        newvalue: nfas
+      - value: '176'
+        newvalue: tr008
+      - value: '177'
+        newvalue: gr303RDT
+      - value: '178'
+        newvalue: gr303IDT
+      - value: '179'
+        newvalue: isup
+      - value: '180'
+        newvalue: propDocsWirelessMaclayer
+      - value: '181'
+        newvalue: propDocsWirelessDownstream
+      - value: '182'
+        newvalue: propDocsWirelessUpstream
+      - value: '183'
+        newvalue: hiperlan2
+      - value: '184'
+        newvalue: propBWAp2Mp
+      - value: '185'
+        newvalue: sonetOverheadChannel
+      - value: '186'
+        newvalue: digitalWrapperOverheadChannel
+      - value: '187'
+        newvalue: aal2
+      - value: '188'
+        newvalue: radioMAC
+      - value: '189'
+        newvalue: atmRadio
+      - value: '190'
+        newvalue: imt
+      - value: '191'
+        newvalue: mvl
+      - value: '192'
+        newvalue: reachDSL
+      - value: '193'
+        newvalue: frDlciEndPt
+      - value: '194'
+        newvalue: atmVciEndPt
+      - value: '195'
+        newvalue: opticalChannel
+      - value: '196'
+        newvalue: opticalTransport
+      - value: '197'
+        newvalue: propAtm
+      - value: '198'
+        newvalue: voiceOverCable
+      - value: '199'
+        newvalue: infiniband
+      - value: '200'
+        newvalue: teLink
+      - value: '201'
+        newvalue: q2931
+      - value: '202'
+        newvalue: virtualTg
+      - value: '203'
+        newvalue: sipTg
+      - value: '204'
+        newvalue: sipSig
+      - value: '205'
+        newvalue: docsCableUpstreamChannel
+      - value: '206'
+        newvalue: econet
+      - value: '207'
+        newvalue: pon155
+      - value: '208'
+        newvalue: pon622
+      - value: '209'
+        newvalue: bridge
+      - value: '210'
+        newvalue: linegroup
+      - value: '211'
+        newvalue: voiceEMFGD
+      - value: '212'
+        newvalue: voiceFGDEANA
+      - value: '213'
+        newvalue: voiceDID
+      - value: '214'
+        newvalue: mpegTransport
+      - value: '215'
+        newvalue: sixToFour
+      - value: '216'
+        newvalue: gtp
+      - value: '217'
+        newvalue: pdnEtherLoop1
+      - value: '218'
+        newvalue: pdnEtherLoop2
+      - value: '219'
+        newvalue: opticalChannelGroup
+      - value: '220'
+        newvalue: homepna
+      - value: '221'
+        newvalue: gfp
+      - value: '222'
+        newvalue: ciscoISLvlan
+      - value: '223'
+        newvalue: actelisMetaLOOP
+      - value: '224'
+        newvalue: fcipLink
+      - value: '225'
+        newvalue: rpr
+      - value: '226'
+        newvalue: qam
+      - value: '227'
+        newvalue: lmp
+      - value: '228'
+        newvalue: cblVectaStar
+      - value: '229'
+        newvalue: docsCableMCmtsDownstream
+      - value: '230'
+        newvalue: adsl2
+      - value: '231'
+        newvalue: macSecControlledIF
+      - value: '232'
+        newvalue: macSecUncontrolledIF
+      - value: '233'
+        newvalue: aviciOpticalEther
+      - value: '234'
+        newvalue: atmbond
+      - value: '235'
+        newvalue: voiceFGDOS
+      - value: '236'
+        newvalue: mocaVersion1
+      - value: '237'
+        newvalue: ieee80216WMAN
+      - value: '238'
+        newvalue: adsl2plus
+      - value: '239'
+        newvalue: dvbRcsMacLayer
+      - value: '240'
+        newvalue: dvbTdm
+      - value: '241'
+        newvalue: dvbRcsTdma
+      - value: '242'
+        newvalue: x86Laps
+      - value: '243'
+        newvalue: wwanPP
+      - value: '244'
+        newvalue: wwanPP2
+      - value: '245'
+        newvalue: voiceEBS
+      - value: '246'
+        newvalue: ifPwType
+      - value: '247'
+        newvalue: ilan
+      - value: '248'
+        newvalue: pip
+      - value: '249'
+        newvalue: aluELP
+      - value: '250'
+        newvalue: gpon
+      - value: '251'
+        newvalue: vdsl2
+      - value: '252'
+        newvalue: capwapDot11Profile
+      - value: '253'
+        newvalue: capwapDot11Bss
+      - value: '254'
+        newvalue: capwapWtpVirtualRadio
+      - value: '255'
+        newvalue: bits
+      - value: '256'
+        newvalue: docsCableUpstreamRfPort
+      - value: '257'
+        newvalue: cableDownstreamRfPort
+      - value: '258'
+        newvalue: vmwareVirtualNic
+      - value: '259'
+        newvalue: ieee802154
+      - value: '260'
+        newvalue: otnOdu
+      - value: '261'
+        newvalue: otnOtu
+      - value: '262'
+        newvalue: ifVfiType
+      - value: '263'
+        newvalue: g9981
+      - value: '264'
+        newvalue: g9982
+      - value: '265'
+        newvalue: g9983
+      - value: '266'
+        newvalue: aluEpon
+      - value: '267'
+        newvalue: aluEponOnu
+      - value: '268'
+        newvalue: aluEponPhysicalUni
+      - value: '269'
+        newvalue: aluEponLogicalLink
+      - value: '270'
+        newvalue: aluGponOnu
+      - value: '271'
+        newvalue: aluGponPhysicalUni
+      - value: '272'
+        newvalue: vmwareNicTeam
+      - value: '277'
+        newvalue: docsOfdmDownstream
+      - value: '278'
+        newvalue: docsOfdmaUpstream
+      - value: '279'
+        newvalue: gfast
+      - value: '280'
+        newvalue: sdci
+      - value: '281'
+        newvalue: xboxWireless
+      - value: '282'
+        newvalue: fastdsl
+      - value: '283'
+        newvalue: docsCableScte55d1FwdOob
+      - value: '284'
+        newvalue: docsCableScte55d1RetOob
+      - value: '285'
+        newvalue: docsCableScte55d2DsOob
+      - value: '286'
+        newvalue: docsCableScte55d2UsOob
+      - value: '287'
+        newvalue: docsCableNdf
+      - value: '288'
+        newvalue: docsCableNdr
+      - value: '289'
+        newvalue: ptm
+      - value: '290'
+        newvalue: ghn
+    - uuid: 5952669f17434016bd29a7a1b7f27f69
+      name: Estado do servico
+      mappings:
+      - value: '0'
+        newvalue: Inoperante
+      - value: '1'
+        newvalue: Operacional
+    - uuid: ca700f8bef8e482b907d32dcfcb978a1
+      name: zabbix.host.disponivel
+      mappings:
+      - value: '0'
+        newvalue: indisponivel
+      - value: '1'
+        newvalue: disponivel
+      - value: '2'
+        newvalue: desconhecido
+  triggers:
+  - uuid: f1ca34e248fa4433b84e27d35f6e3080
+    expression: (last(/0Wnet - MikroTik CCR2116-12G-4S por SNMP/system.hw.uptime[hrSystemUptime.0])>0 and last(/0Wnet - MikroTik
+      CCR2116-12G-4S por SNMP/system.hw.uptime[hrSystemUptime.0])<10m) or (last(/0Wnet - MikroTik CCR2116-12G-4S por SNMP/system.hw.uptime[hrSystemUptime.0])=0
+      and last(/0Wnet - MikroTik CCR2116-12G-4S por SNMP/system.net.uptime[sysUpTime.0])<10m)
+    name: 'MikroTik: Host foi reiniciado'
+    event_name: 'MikroTik: {HOST.NAME} foi reiniciado (tempo ativo < 10m)'
+    priority: WARNING
+    description: O tempo ativo e menor que 10 minutos.
+    manual_close: 'YES'
+    dependencies:
+    - name: 'MikroTik: Sem coleta de dados SNMP'
+      expression: max(/0Wnet - MikroTik CCR2116-12G-4S por SNMP/zabbix[host,snmp,available],{$SNMP.TIMEOUT})=0
+    tags:
+    - tag: escopo
+      value: aviso
+  graphs:
+  - uuid: fcdc0f56fe5443df85203bccb250f4e8
+    name: 'MikroTik: Utilizacao de memoria'
+    ymin_type_1: FIXED
+    ymax_type_1: FIXED
+    graph_items:
+    - drawtype: GRADIENT_LINE
+      color: 199C0D
+      item:
+        host: 0Wnet - MikroTik CCR2116-12G-4S por SNMP
+        key: vm.memory.util[memoryUsedPercentage.Memory]
