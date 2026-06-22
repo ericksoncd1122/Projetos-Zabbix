@@ -30,6 +30,10 @@ Neste repositório serão disponibilizados templates para monitoramento de difer
 - equipamentos de acesso e transporte;
 - dispositivos com suporte a SNMP e outras formas de coleta compatíveis com o Zabbix.
 
+## Templates disponíveis
+
+- [Template Datacom DM4615 GPON](Template%20OLT%20Datacom/datacom-olt-zabbix/README.md)
+
 ## Evolução do projeto
 
 Os projetos e templates deste repositório serão adicionados gradualmente, conforme forem sendo **construídos, validados e testados em ambiente real**.  

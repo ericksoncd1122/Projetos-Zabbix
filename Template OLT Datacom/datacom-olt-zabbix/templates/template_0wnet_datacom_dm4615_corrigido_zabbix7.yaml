@@ -1,0 +1,485 @@
+zabbix_export:
+  version: '7.0'
+  template_groups:
+  - uuid: aacd15539372457f9e4aed3b29aeff39
+    name: Templates
+  templates:
+  - uuid: 58082b5bb1a740b0a78c0670dd35b7b1
+    template: 0Wnet - Datacom DM4615 GPON corrigido
+    name: 0Wnet - Datacom DM4615 GPON corrigido
+    description: |
+      Template novo baseado no "0Wnet - Template OLT Datacom", sem alterar o original.
+
+      Ajustes principais:
+      - Itens traduzidos para portugues.
+      - Removida a dependencia do script inexistente pondtc.
+      - Descoberta de PONs por IF-MIB, filtrando interfaces gpon-*.
+      - Contadores de ONUs por PON via script externo datacom_dm4615_onu.py.
+      - Macros explicitas para credenciais Telnet usadas apenas na coleta das ONUs.
+
+      Validado em ambiente Datacom DM4615 GPON com dados anonimizados:
+      - Modelo: DM4615 16GPON+4GT+4XS
+      - DmOS: 10.2.x
+      - PONs: gpon-1/1/1 a gpon-1/1/16
+    vendor:
+      name: 0Wnet
+      version: dm4615-corrigido-v1
+    groups:
+    - name: Templates
+    macros:
+    - macro: '{$SNMP.TIMEOUT}'
+      value: 20s
+    - macro: '{$DATACOM.TELNET.USER}'
+      value: CHANGE_ME_USER
+      description: Usuario Telnet da OLT. Ajustar no host.
+    - macro: '{$DATACOM.TELNET.PASSWORD}'
+      value: CHANGE_ME_PASSWORD
+      type: SECRET_TEXT
+      description: Senha Telnet da OLT. Ajustar no host.
+    - macro: '{$DATACOM.ONU.DOWN.MINUTES}'
+      value: 5m
+    - macro: '{$DATACOM.PON.DOWN.MIN.ONUS}'
+      value: '1'
+      description: Quantidade minima de ONUs autorizadas para alertar queda total da PON.
+    - macro: '{$DATACOM.PON.MASS.DOWN.MIN.ONUS}'
+      value: '5'
+      description: Quantidade minima historica de ONUs online para avaliar queda massiva.
+    - macro: '{$DATACOM.PON.MASS.DOWN.PCT}'
+      value: '50'
+      description: Percentual restante de ONUs online, comparado ao maximo em 24h, para alertar queda massiva.
+    - macro: '{$DATACOM.UPLINK.IFNAME.MATCHES}'
+      value: ^(gigabit-ethernet|ten-gigabit-ethernet)-
+      description: Regex de interfaces consideradas uplink para alertas de porta.
+    - macro: '{$DATACOM.UPLINK.TRAFFIC.MIN.BPS}'
+      value: '1000000'
+      description: Trafego minimo nas ultimas 24h para considerar a porta uplink em uso.
+    - macro: '{$DATACOM.CPU.WARN}'
+      value: '85'
+    - macro: '{$DATACOM.MEM.WARN}'
+      value: '90'
+    - macro: '{$DATACOM.TEMP.WARN}'
+      value: '75'
+    items:
+    - uuid: 6e3d6d99b06e49cab975d4639de99dd3
+      name: Nome do sistema
+      type: SNMP_AGENT
+      snmp_oid: 1.3.6.1.2.1.1.5.0
+      key: datacom.system.name
+      delay: 1h
+      history: 30d
+      value_type: CHAR
+      trends: '0'
+      tags:
+      - tag: componente
+        value: inventario
+    - uuid: 860c13a2be0840a5a45ad31dc9e1952c
+      name: Descricao do sistema
+      type: SNMP_AGENT
+      snmp_oid: 1.3.6.1.2.1.1.1.0
+      key: datacom.system.descr
+      delay: 1h
+      history: 30d
+      value_type: TEXT
+      trends: '0'
+      tags:
+      - tag: componente
+        value: inventario
+    - uuid: 41a4f38f5e8f4a2eaa7f0fc691ef2537
+      name: Uptime
+      type: SNMP_AGENT
+      snmp_oid: 1.3.6.1.2.1.1.3.0
+      key: datacom.system.uptime
+      delay: 5m
+      history: 90d
+      units: uptime
+      preprocessing:
+      - type: MULTIPLIER
+        parameters:
+        - '0.01'
+      tags:
+      - tag: componente
+        value: sistema
+    - uuid: 473925840f72470e8f75f7108c0623cc
+      name: Modelo da OLT
+      type: SNMP_AGENT
+      snmp_oid: 1.3.6.1.4.1.3709.3.6.11.1.1.2.1
+      key: datacom.system.model
+      delay: 1h
+      history: 30d
+      value_type: TEXT
+      trends: '0'
+      tags:
+      - tag: componente
+        value: inventario
+    - uuid: a7fe8e9afd7d4127b51d647c341b4910
+      name: Temperatura da placa
+      type: SNMP_AGENT
+      snmp_oid: .1.3.6.1.4.1.3709.3.6.6.1.3.1.6.1.1.49.7.83.69.78.83.79.82.49
+      key: datacom.temperature.card
+      delay: 5m
+      history: 90d
+      units: C
+      preprocessing:
+      - type: MULTIPLIER
+        parameters:
+        - '0.1'
+      tags:
+      - tag: componente
+        value: temperatura
+      triggers:
+      - uuid: 785fe95f2af349a28eb0359989bc3cc2
+        expression: last(/0Wnet - Datacom DM4615 GPON corrigido/datacom.temperature.card)>{$DATACOM.TEMP.WARN}
+        name: Temperatura da placa acima de {$DATACOM.TEMP.WARN} C
+        priority: WARNING
+    discovery_rules:
+    - uuid: e2e6b7d6d09f4ed68195e03aeedba596
+      name: Descoberta de CPU e memoria
+      type: SNMP_AGENT
+      snmp_oid: discovery[{#SNMPVALUE},1.3.6.1.4.1.3709.3.6.4.1.2.1.2]
+      key: datacom.discovery.cpu.memory
+      delay: 1m
+      item_prototypes:
+      - uuid: d3f117153ead487d92088d3adaf9957e
+        name: CPU uso nos ultimos 5 segundos
+        type: SNMP_AGENT
+        snmp_oid: 1.3.6.1.4.1.3709.3.6.4.1.2.1.2.{#SNMPINDEX}
+        key: datacom.cpu.5s[{#SNMPINDEX}]
+        delay: 1m
+        value_type: FLOAT
+        units: '%'
+        tags:
+        - tag: componente
+          value: cpu
+        trigger_prototypes:
+        - uuid: b6cbfb60defb4f36bd377791df225f8d
+          expression: avg(/0Wnet - Datacom DM4615 GPON corrigido/datacom.cpu.5s[{#SNMPINDEX}],5m)>{$DATACOM.CPU.WARN}
+          name: CPU acima de {$DATACOM.CPU.WARN}% por 5 minutos
+          priority: WARNING
+      - uuid: 0f9e4dedac154b07b3feb3a2656657ff
+        name: Memoria total
+        type: SNMP_AGENT
+        snmp_oid: 1.3.6.1.4.1.3709.3.6.4.2.2.1.2.{#SNMPINDEX}
+        key: datacom.memory.total[{#SNMPINDEX}]
+        delay: 5m
+        units: B
+        tags:
+        - tag: componente
+          value: memoria
+      - uuid: 82451daef80c4a2cbe6da1a8d7221c4d
+        name: Memoria disponivel
+        type: SNMP_AGENT
+        snmp_oid: 1.3.6.1.4.1.3709.3.6.4.2.2.1.7.{#SNMPINDEX}
+        key: datacom.memory.available[{#SNMPINDEX}]
+        delay: 5m
+        units: B
+        tags:
+        - tag: componente
+          value: memoria
+      - uuid: 2a997ffb88994924a3f60bfd90ce220b
+        name: Memoria utilizada
+        type: CALCULATED
+        key: datacom.memory.used.percent[{#SNMPINDEX}]
+        delay: 5m
+        value_type: FLOAT
+        units: '%'
+        params: 100*(last(//datacom.memory.total[{#SNMPINDEX}])-last(//datacom.memory.available[{#SNMPINDEX}]))/last(//datacom.memory.total[{#SNMPINDEX}])
+        tags:
+        - tag: componente
+          value: memoria
+        trigger_prototypes:
+        - uuid: 2caa96961f0240e7bf60a6a1214d356d
+          expression: avg(/0Wnet - Datacom DM4615 GPON corrigido/datacom.memory.used.percent[{#SNMPINDEX}],5m)>{$DATACOM.MEM.WARN}
+          name: Memoria acima de {$DATACOM.MEM.WARN}% por 5 minutos
+          priority: WARNING
+    - uuid: 742f3237b0534fc093356939e6acbd14
+      name: Descoberta de interfaces
+      type: SNMP_AGENT
+      snmp_oid: discovery[{#IFNAME},1.3.6.1.2.1.2.2.1.2]
+      key: datacom.discovery.interfaces
+      delay: 1m
+      item_prototypes:
+      - uuid: 0f51ebfca7a446a5a2dceda3fc59fd7f
+        name: Interface {#IFNAME} - Trafego recebido
+        type: SNMP_AGENT
+        snmp_oid: 1.3.6.1.2.1.31.1.1.1.6.{#SNMPINDEX}
+        key: datacom.if.in.bits[{#SNMPINDEX}]
+        delay: 3m
+        units: bps
+        preprocessing:
+        - type: CHANGE_PER_SECOND
+          parameters:
+          - ''
+        - type: MULTIPLIER
+          parameters:
+          - '8'
+        tags:
+        - tag: componente
+          value: interface
+    - uuid: 67ae8b221591430b9237789a107cac2a
+      name: Descoberta de uplinks
+      type: SNMP_AGENT
+      snmp_oid: discovery[{#IFNAME},1.3.6.1.2.1.2.2.1.2]
+      key: datacom.discovery.uplinks
+      delay: 1m
+      filter:
+        conditions:
+        - macro: '{#IFNAME}'
+          value: '{$DATACOM.UPLINK.IFNAME.MATCHES}'
+          formulaid: A
+      item_prototypes:
+      - uuid: 4856461dec364ab0a768454d7f588e0a
+        name: Uplink {#IFNAME} - Trafego recebido
+        type: SNMP_AGENT
+        snmp_oid: 1.3.6.1.2.1.31.1.1.1.6.{#SNMPINDEX}
+        key: datacom.uplink.if.in.bits[{#SNMPINDEX}]
+        delay: 3m
+        units: bps
+        preprocessing:
+        - type: CHANGE_PER_SECOND
+          parameters:
+          - ''
+        - type: MULTIPLIER
+          parameters:
+          - '8'
+        tags:
+        - tag: componente
+          value: uplink
+      - uuid: 3f692b3517d445d78da337ab7df6f137
+        name: Uplink {#IFNAME} - Trafego enviado
+        type: SNMP_AGENT
+        snmp_oid: 1.3.6.1.2.1.31.1.1.1.10.{#SNMPINDEX}
+        key: datacom.uplink.if.out.bits[{#SNMPINDEX}]
+        delay: 3m
+        units: bps
+        preprocessing:
+        - type: CHANGE_PER_SECOND
+          parameters:
+          - ''
+        - type: MULTIPLIER
+          parameters:
+          - '8'
+        tags:
+        - tag: componente
+          value: uplink
+      - uuid: 74fee25ef2624d22abfbb41094e39beb
+        name: Uplink {#IFNAME} - Estado operacional
+        type: SNMP_AGENT
+        snmp_oid: 1.3.6.1.2.1.2.2.1.8.{#SNMPINDEX}
+        key: datacom.uplink.if.operstatus[{#SNMPINDEX}]
+        delay: 1m
+        valuemap:
+          name: Datacom estado de interface
+        tags:
+        - tag: componente
+          value: uplink
+        trigger_prototypes:
+        - uuid: 06f8d7b022cf4e99a2f71f8f311bac0c
+          expression: last(/0Wnet - Datacom DM4615 GPON corrigido/datacom.uplink.if.operstatus[{#SNMPINDEX}])<>1 and (max(/0Wnet - Datacom DM4615 GPON corrigido/datacom.uplink.if.in.bits[{#SNMPINDEX}],24h)>{$DATACOM.UPLINK.TRAFFIC.MIN.BPS} or max(/0Wnet - Datacom DM4615 GPON corrigido/datacom.uplink.if.out.bits[{#SNMPINDEX}],24h)>{$DATACOM.UPLINK.TRAFFIC.MIN.BPS})
+          recovery_mode: RECOVERY_EXPRESSION
+          recovery_expression: last(/0Wnet - Datacom DM4615 GPON corrigido/datacom.uplink.if.operstatus[{#SNMPINDEX}])=1
+          name: 'Uplink {#IFNAME} down'
+          priority: DISASTER
+          manual_close: 'YES'
+      - uuid: b8919bc0c5bc4ff5bfd718cbb0cb2c1d
+        name: Interface {#IFNAME} - Trafego enviado
+        type: SNMP_AGENT
+        snmp_oid: 1.3.6.1.2.1.31.1.1.1.10.{#SNMPINDEX}
+        key: datacom.if.out.bits[{#SNMPINDEX}]
+        delay: 3m
+        units: bps
+        preprocessing:
+        - type: CHANGE_PER_SECOND
+          parameters:
+          - ''
+        - type: MULTIPLIER
+          parameters:
+          - '8'
+        tags:
+        - tag: componente
+          value: interface
+      - uuid: 95a197f4ad4a4268aa27ec2b6df87539
+        name: Interface {#IFNAME} - Estado operacional
+        type: SNMP_AGENT
+        snmp_oid: 1.3.6.1.2.1.2.2.1.8.{#SNMPINDEX}
+        key: datacom.if.operstatus[{#SNMPINDEX}]
+        delay: 3m
+        valuemap:
+          name: Datacom estado de interface
+        tags:
+        - tag: componente
+          value: interface
+    - uuid: eb85fd0a80d74643b139cb4716b08f1c
+      name: Descoberta de PONs GPON
+      type: SNMP_AGENT
+      snmp_oid: discovery[{#PONNAME},1.3.6.1.2.1.2.2.1.2]
+      key: datacom.discovery.pons
+      delay: 1m
+      filter:
+        conditions:
+        - macro: '{#PONNAME}'
+          value: ^gpon-
+          formulaid: A
+      item_prototypes:
+      - uuid: 04485b00e4944d17bfcae7035706fead
+        name: PON {#PONNAME} - Estado operacional
+        type: SNMP_AGENT
+        snmp_oid: 1.3.6.1.2.1.2.2.1.8.{#SNMPINDEX}
+        key: datacom.pon.operstatus[{#SNMPINDEX}]
+        delay: 3m
+        valuemap:
+          name: Datacom estado de interface
+        tags:
+        - tag: componente
+          value: pon
+        trigger_prototypes:
+        - uuid: 896d41acb9444c2aad59fc1fac542717
+          expression: last(/0Wnet - Datacom DM4615 GPON corrigido/datacom.pon.operstatus[{#SNMPINDEX}])<>1 and last(/0Wnet - Datacom DM4615 GPON corrigido/datacom.pon.onu.total[{#SNMPINDEX}])>={$DATACOM.PON.DOWN.MIN.ONUS} and max(/0Wnet - Datacom DM4615 GPON corrigido/datacom_dm4615_onu.py["pon-count","{HOST.CONN}","{$DATACOM.TELNET.USER}","{$DATACOM.TELNET.PASSWORD}","{#PONNAME}","online"],24h)>0
+          recovery_mode: RECOVERY_EXPRESSION
+          recovery_expression: last(/0Wnet - Datacom DM4615 GPON corrigido/datacom.pon.operstatus[{#SNMPINDEX}])=1
+          name: 'PON {#PONNAME} down - provavel rompimento, SFP ou falha da porta GPON'
+          priority: DISASTER
+          manual_close: 'YES'
+      - uuid: 61bd25ba72bf4ec09aa70e491062b6b7
+        name: PON {#PONNAME} - ONUs autorizadas
+        type: CALCULATED
+        key: datacom.pon.onu.total[{#SNMPINDEX}]
+        delay: 5m
+        params: last(//datacom_dm4615_onu.py["pon-count","{HOST.CONN}","{$DATACOM.TELNET.USER}","{$DATACOM.TELNET.PASSWORD}","{#PONNAME}","online"])+last(//datacom_dm4615_onu.py["pon-count","{HOST.CONN}","{$DATACOM.TELNET.USER}","{$DATACOM.TELNET.PASSWORD}","{#PONNAME}","offline"])
+        tags:
+        - tag: componente
+          value: onu
+      - uuid: 11ceaa2c4e94469280f8860c1ab31659
+        name: PON {#PONNAME} - ONUs online
+        type: EXTERNAL
+        key: datacom_dm4615_onu.py["pon-count","{HOST.CONN}","{$DATACOM.TELNET.USER}","{$DATACOM.TELNET.PASSWORD}","{#PONNAME}","online"]
+        delay: 5m
+        timeout: 30s
+        history: 90d
+        tags:
+        - tag: componente
+          value: onu
+        trigger_prototypes:
+        - uuid: fb2477e4075345e2bbf29535cc117d05
+          expression: last(/0Wnet - Datacom DM4615 GPON corrigido/datacom.pon.operstatus[{#SNMPINDEX}])=1 and max(/0Wnet - Datacom DM4615 GPON corrigido/datacom_dm4615_onu.py["pon-count","{HOST.CONN}","{$DATACOM.TELNET.USER}","{$DATACOM.TELNET.PASSWORD}","{#PONNAME}","online"],24h)>={$DATACOM.PON.MASS.DOWN.MIN.ONUS} and last(/0Wnet - Datacom DM4615 GPON corrigido/datacom_dm4615_onu.py["pon-count","{HOST.CONN}","{$DATACOM.TELNET.USER}","{$DATACOM.TELNET.PASSWORD}","{#PONNAME}","online"])>0 and last(/0Wnet - Datacom DM4615 GPON corrigido/datacom_dm4615_onu.py["pon-count","{HOST.CONN}","{$DATACOM.TELNET.USER}","{$DATACOM.TELNET.PASSWORD}","{#PONNAME}","online"])<=max(/0Wnet - Datacom DM4615 GPON corrigido/datacom_dm4615_onu.py["pon-count","{HOST.CONN}","{$DATACOM.TELNET.USER}","{$DATACOM.TELNET.PASSWORD}","{#PONNAME}","online"],24h)*{$DATACOM.PON.MASS.DOWN.PCT}/100
+          name: 'PON {#PONNAME} com queda massiva de ONUs - possivel falta parcial, splitter, CTO ou rompimento parcial'
+          priority: DISASTER
+          manual_close: 'YES'
+      - uuid: 9c9f23e59c1840de942cfa4776c2d4aa
+        name: PON {#PONNAME} - ONUs offline
+        type: EXTERNAL
+        key: datacom_dm4615_onu.py["pon-count","{HOST.CONN}","{$DATACOM.TELNET.USER}","{$DATACOM.TELNET.PASSWORD}","{#PONNAME}","offline"]
+        delay: 5m
+        timeout: 30s
+        history: 90d
+        tags:
+        - tag: componente
+          value: onu
+        trigger_prototypes:
+        - uuid: 9d950341c5424e18b469ee6b8bcd40bc
+          expression: last(/0Wnet - Datacom DM4615 GPON corrigido/datacom.pon.operstatus[{#SNMPINDEX}])=1 and last(/0Wnet - Datacom DM4615 GPON corrigido/datacom.pon.onu.total[{#SNMPINDEX}])>={$DATACOM.PON.DOWN.MIN.ONUS} and max(/0Wnet - Datacom DM4615 GPON corrigido/datacom_dm4615_onu.py["pon-count","{HOST.CONN}","{$DATACOM.TELNET.USER}","{$DATACOM.TELNET.PASSWORD}","{#PONNAME}","online"],24h)>0 and last(/0Wnet - Datacom DM4615 GPON corrigido/datacom_dm4615_onu.py["pon-count","{HOST.CONN}","{$DATACOM.TELNET.USER}","{$DATACOM.TELNET.PASSWORD}","{#PONNAME}","online"])=0
+          name: 'PON {#PONNAME} up sem ONUs online - provavel falta de energia na localidade ou rompimento apos splitter'
+          priority: DISASTER
+          manual_close: 'YES'
+      graph_prototypes:
+      - uuid: bb9000bc77a84ce3b8f5878ba3f27e8b
+        name: PON {#PONNAME} - ONUs autorizadas, online e offline
+        graph_items:
+        - color: 00A65A
+          item:
+            host: 0Wnet - Datacom DM4615 GPON corrigido
+            key: datacom_dm4615_onu.py["pon-count","{HOST.CONN}","{$DATACOM.TELNET.USER}","{$DATACOM.TELNET.PASSWORD}","{#PONNAME}","online"]
+        - sortorder: '1'
+          color: DD4B39
+          item:
+            host: 0Wnet - Datacom DM4615 GPON corrigido
+            key: datacom_dm4615_onu.py["pon-count","{HOST.CONN}","{$DATACOM.TELNET.USER}","{$DATACOM.TELNET.PASSWORD}","{#PONNAME}","offline"]
+        - sortorder: '2'
+          color: 3C8DBC
+          item:
+            host: 0Wnet - Datacom DM4615 GPON corrigido
+            key: datacom.pon.onu.total[{#SNMPINDEX}]
+    - uuid: dfef7ae3dfe340989e01d2e43c4328db
+      name: Descoberta de ONUs via Telnet
+      type: EXTERNAL
+      key: datacom_dm4615_onu.py["onu-lld","{HOST.CONN}","{$DATACOM.TELNET.USER}","{$DATACOM.TELNET.PASSWORD}"]
+      delay: 15m
+      timeout: 30s
+      item_prototypes:
+      - uuid: 0bfdbba19d864298b7412577d6f9855b
+        name: ONU {#PONNAME}/{#ONUID} - Estado
+        type: EXTERNAL
+        key: datacom_dm4615_onu.py["onu-value","{HOST.CONN}","{$DATACOM.TELNET.USER}","{$DATACOM.TELNET.PASSWORD}","{#PONNAME}","{#ONUID}","status"]
+        delay: 5m
+        timeout: 30s
+        valuemap:
+          name: Datacom estado de ONU
+        tags:
+        - tag: componente
+          value: onu
+      - uuid: db9747f584ce4b72a64dcf88edae58ca
+        name: ONU {#PONNAME}/{#ONUID} - Serial
+        type: EXTERNAL
+        key: datacom_dm4615_onu.py["onu-value","{HOST.CONN}","{$DATACOM.TELNET.USER}","{$DATACOM.TELNET.PASSWORD}","{#PONNAME}","{#ONUID}","serial"]
+        delay: 1h
+        timeout: 30s
+        history: 30d
+        value_type: CHAR
+        trends: '0'
+        tags:
+        - tag: componente
+          value: onu
+      - uuid: 8a8fb65a14644b4884c120232a09aff7
+        name: ONU {#PONNAME}/{#ONUID} - PPPoE ativo
+        type: EXTERNAL
+        key: datacom_dm4615_onu.py["onu-value","{HOST.CONN}","{$DATACOM.TELNET.USER}","{$DATACOM.TELNET.PASSWORD}","{#PONNAME}","{#ONUID}","pppoe-active"]
+        delay: 5m
+        timeout: 30s
+        valuemap:
+          name: Datacom estado PPPoE
+        tags:
+        - tag: componente
+          value: pppoe
+      - uuid: 9d05a7e5614048e4b57d98fdc1508fdb
+        name: ONU {#PONNAME}/{#ONUID} - PPPoE sessao e MAC remoto
+        type: EXTERNAL
+        key: datacom_dm4615_onu.py["onu-value","{HOST.CONN}","{$DATACOM.TELNET.USER}","{$DATACOM.TELNET.PASSWORD}","{#PONNAME}","{#ONUID}","pppoe"]
+        delay: 5m
+        timeout: 30s
+        history: 30d
+        value_type: CHAR
+        trends: '0'
+        tags:
+        - tag: componente
+          value: pppoe
+    valuemaps:
+    - uuid: ed33a93a759b47e09658ca6cfdc44143
+      name: Datacom estado de interface
+      mappings:
+      - value: '1'
+        newvalue: Up
+      - value: '2'
+        newvalue: Down
+      - value: '3'
+        newvalue: Testing
+      - value: '4'
+        newvalue: Unknown
+      - value: '5'
+        newvalue: Dormant
+      - value: '6'
+        newvalue: Not present
+      - value: '7'
+        newvalue: Lower layer down
+    - uuid: a998ed315e254ee6a83ddf26857cd94d
+      name: Datacom estado de ONU
+      mappings:
+      - value: '1'
+        newvalue: Online
+      - value: '0'
+        newvalue: Offline
+    - uuid: b443e3c157634cb9ac6097ea1f4b80b4
+      name: Datacom estado PPPoE
+      mappings:
+      - value: '1'
+        newvalue: Ativo
+      - value: '0'
+        newvalue: Sem sessao
