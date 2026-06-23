@@ -21,6 +21,25 @@ def fail(message, code=1):
     raise SystemExit(code)
 
 
+def resolve_password(value):
+    if value.startswith("file:"):
+        path = value[5:]
+    elif value.startswith("@"):
+        path = value[1:]
+    else:
+        return value
+
+    try:
+        with open(path, "r", encoding="utf-8") as secret_file:
+            password = secret_file.readline().strip()
+    except OSError as exc:
+        fail(f"Erro: nao foi possivel ler arquivo de senha Telnet: {exc}")
+
+    if not password:
+        fail("Erro: arquivo de senha Telnet vazio")
+    return password
+
+
 def telnet_login(host, user, password, timeout):
     tn = telnetlib.Telnet(host, 23, timeout=timeout)
     data = tn.read_until(b"login:", timeout=timeout)
@@ -243,24 +262,24 @@ def main():
     parser.add_argument("--timeout", type=int, default=8)
     args = parser.parse_args()
 
-    tn = telnet_login(args.host, args.user, args.password, args.timeout)
+    password = resolve_password(args.password)
+    tn = telnet_login(args.host, args.user, password, args.timeout)
     try:
         if args.action == "pon-count":
             if len(args.extra) != 2:
                 fail("Uso: pon-count <host> <user> <password> <pon> <online|offline|total>")
             pon = normalize_pon(args.extra[0])
             mode = args.extra[1].lower()
-            counts = parse_interface_counts(run_command(tn, "show onu-interface-count", timeout=8))
-            if pon in counts and mode in counts[pon]:
-                print(counts[pon][mode])
+            output = best_onu_output(tn, pon=pon)
+            fallback = command_count_fallback(output)
+            rows = parse_rows(output, default_pon=pon)
+            if rows:
+                print(count_rows(rows, mode))
+            elif fallback is not None and mode == "total":
+                print(fallback)
             else:
-                output = best_onu_output(tn, pon=pon)
-                fallback = command_count_fallback(output)
-                rows = parse_rows(output, default_pon=pon)
-                if fallback is not None and mode == "total" and not rows:
-                    print(fallback)
-                else:
-                    print(count_rows(rows, mode))
+                counts = parse_interface_counts(run_command(tn, "show onu-interface-count", timeout=8))
+                print(counts.get(pon, {}).get(mode, 0))
         elif args.action == "onu-lld":
             counts = parse_interface_counts(run_command(tn, "show onu-interface-count", timeout=8))
             pons = [pon for pon in sorted(counts) if counts[pon].get("total", 0) > 0]

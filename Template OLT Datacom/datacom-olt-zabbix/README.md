@@ -84,15 +84,31 @@ Macros obrigatorias:
 
 - `{$SNMP_COMMUNITY}`: comunidade SNMP, se nao for herdada de macro global.
 - `{$DATACOM.TELNET.USER}`: usuario Telnet da OLT.
-- `{$DATACOM.TELNET.PASSWORD}`: senha Telnet da OLT.
+- `{$DATACOM.TELNET.PASSWORD_REF}`: referencia para arquivo local com a senha Telnet, por padrao `file:/etc/zabbix/datacom_dm4615_telnet.pass`.
+
+Para evitar que a senha apareca na lista de processos, grave a senha em arquivo no servidor Zabbix:
+
+```bash
+sudo install -o zabbix -g zabbix -m 600 /dev/null /etc/zabbix/datacom_dm4615_telnet.pass
+sudo bash -c 'read -rsp "Senha Telnet: " pass; echo; printf "%s\n" "$pass" > /etc/zabbix/datacom_dm4615_telnet.pass'
+```
 
 Macros opcionais de ajuste:
 
 - `{$DATACOM.PON.DOWN.MIN.ONUS}`: minimo de ONUs autorizadas para alertar queda total.
+- `{$DATACOM.PON.MONITOR}`: habilita alertas de PON. Padrao `1`.
 - `{$DATACOM.PON.MASS.DOWN.MIN.ONUS}`: minimo historico de ONUs online para avaliar queda massiva.
 - `{$DATACOM.PON.MASS.DOWN.PCT}`: percentual restante de ONUs online para classificar queda massiva.
 - `{$DATACOM.UPLINK.IFNAME.MATCHES}`: regex de nomes de interfaces consideradas uplink.
 - `{$DATACOM.UPLINK.TRAFFIC.MIN.BPS}`: trafego minimo nas ultimas 24h para considerar uma porta uplink em uso.
+
+Para manter uma PON descoberta, mas sem alerta porque ela nao esta em uso, crie uma macro contextual no host:
+
+```text
+{$DATACOM.PON.MONITOR:"gpon-1/1/16"} = 0
+```
+
+Quando essa macro contextual esta em `0`, os alertas daquela PON deixam de abrir e o alerta de PON down pode recuperar mesmo que a porta continue fisicamente down.
 
 ### 5. Executar as descobertas
 
@@ -106,13 +122,29 @@ No host, execute manualmente:
 
 Depois confira se foram criados itens de PON, uplink, ONU e PPPoE.
 
+### 6. Ajustar capacidade do Zabbix server
+
+Este template usa checks externos via Telnet. Para evitar alertas de uso alto de `poller` e `icmp pinger`, ajuste o servidor Zabbix conforme a carga do ambiente:
+
+```ini
+StartPollers=20
+StartPingers=5
+StartPollersUnreachable=5
+```
+
+Depois reinicie o servidor Zabbix:
+
+```bash
+sudo systemctl restart zabbix-server
+```
+
 ## Logica dos alertas de PON
 
 O template usa o estado fisico da PON junto com contadores de ONUs para separar cenarios comuns:
 
-- `PON down - provavel rompimento, SFP ou falha da porta GPON`: dispara quando a interface GPON fica diferente de `Up`, existe ONU autorizada e ja houve ONU online nas ultimas 24h.
-- `PON up sem ONUs online - provavel falta de energia na localidade ou rompimento apos splitter`: dispara quando a PON continua fisicamente `Up`, mas todas as ONUs que antes tinham comunicacao ficam offline.
-- `PON com queda massiva de ONUs`: dispara quando a PON continua `Up`, ainda existem ONUs online, mas a quantidade atual cai para ate `{$DATACOM.PON.MASS.DOWN.PCT}` do melhor valor das ultimas 24h.
+- `PON down - provavel rompimento, SFP ou falha da porta GPON`: dispara quando a interface GPON fica diferente de `Up`, a PON esta habilitada por `{$DATACOM.PON.MONITOR:"{#PONNAME}"}`, existe ONU autorizada e houve ONU online nos ultimos 30 minutos.
+- `PON up sem ONUs online - provavel falta de energia na localidade ou rompimento apos splitter`: dispara quando a PON continua fisicamente `Up`, mas todas as ONUs ficam sem comunicacao por 30 minutos.
+- `PON com queda massiva de ONUs`: dispara quando a PON continua `Up`, possui pelo menos `{$DATACOM.PON.MASS.DOWN.MIN.ONUS}` ONUs autorizadas no momento e a quantidade online fica por 30 minutos ate `{$DATACOM.PON.MASS.DOWN.PCT}` do melhor valor das ultimas 24h.
 
 Esses alertas usam severidade `Desastre`.
 
