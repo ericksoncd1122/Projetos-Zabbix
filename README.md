@@ -32,7 +32,14 @@ Neste repositório serão disponibilizados templates para monitoramento de difer
 
 ## Templates disponíveis
 
+- [Template Intelbras EPON 4840E](Template%20Intelbras%20OLT%204840e/intelbras-olt-4840e-zabbix/README.md)
+- [Template Intelbras OLT 8820i](Template%20Intelbras%20OLT%208820i/intelbras-olt-8820i-zabbix/README.md)
+- [Template Intelbras OLT G16](Template%20Intelbras%20OLT%20G16/intelbras-olt-g16-zabbix/README.md)
+- [Template Intelbras / FiberHome AN6001-G16](Template%20Intelbras_FIBERHOME%20AN6001%20G16/README.md)
+- [Template MikroTik CCR2116-12G-4S+](Template%20MikroTik%20CCR2116-12G-4S/README.md)
+- [Template MikroTik CRS317-1G-16S+RM](Template%20MikroTik%20CRS317-1G-16SRM/README.md)
 - [Template Datacom DM4615 GPON](Template%20OLT%20Datacom/datacom-olt-zabbix/README.md)
+- [Template Rádio Ceragon IP-50C](Template%20Radio%20Ceragon%20IP-50C/README.md)
 
 ## Evolução do projeto
 
